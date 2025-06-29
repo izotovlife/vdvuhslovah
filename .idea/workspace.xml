@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="7c9cc036-f9df-4d6f-bf1b-a0333c6acf3c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/PythonProject.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PopularPosts.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Profile.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/backend/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/backend/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/backend/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/backend/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Header.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Header.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/LoginForm.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/LoginForm.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostForm.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostForm.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostList.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostList.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/context/AuthContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/context/AuthContext.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/vdvuhslovah" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="2z9VkDW5iNrzzKtNWEznzDI5DtU" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-2ee2454479a3-9cdd278e9d02-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-251.25410.122" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="7c9cc036-f9df-4d6f-bf1b-a0333c6acf3c" name="Changes" comment="" />
+      <created>1751143417804</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1751143417804</updated>
+    </task>
+    <servers />
+  </component>
+</project>
