@@ -5,13 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7c9cc036-f9df-4d6f-bf1b-a0333c6acf3c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/PythonProject.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PopularPosts.jsx" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Profile.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/backend/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/backend/settings.py" afterDir="false" />
