@@ -5,8 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7c9cc036-f9df-4d6f-bf1b-a0333c6acf3c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/auto_push.ps1" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PopularPosts.jsx" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Profile.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/backend/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/backend/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/backend/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/backend/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/admin.py" afterDir="false" />
@@ -15,14 +17,26 @@
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/core/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/core/views.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/public/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/public/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/public/manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/public/robots.txt" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/public/robots.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/App.test.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/api.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Header.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/Header.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/LoginForm.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/LoginForm.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostForm.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostForm.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostList.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/components/PostList.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/context/AuthContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/context/AuthContext.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/reportWebVitals.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/reportWebVitals.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vdvuhslovah/frontend/src/setupTests.js" beforeDir="false" afterPath="$PROJECT_DIR$/vdvuhslovah/frontend/src/setupTests.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +51,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/vdvuhslovah" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
@@ -77,5 +91,8 @@
       <updated>1751143417804</updated>
     </task>
     <servers />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.ps1" />
   </component>
 </project>
