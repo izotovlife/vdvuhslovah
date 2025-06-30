@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Box, TextField, Button } from '@mui/material';
-import axios from 'axios';
+import api from '../api';  // импорт единого экземпляра
 
 export default function PostForm({ onPostCreated }) {
   const [content, setContent] = useState('');
@@ -12,16 +12,7 @@ export default function PostForm({ onPostCreated }) {
     if (!content.trim()) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${process.env.REACT_APP_API}/posts/`,
-        { content },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.post('posts/', { content });  // только относительный путь
       setContent('');
       if (onPostCreated) onPostCreated();
     } catch (err) {
@@ -48,4 +39,5 @@ export default function PostForm({ onPostCreated }) {
     </Box>
   );
 }
+
 
