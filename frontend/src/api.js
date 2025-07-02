@@ -1,10 +1,9 @@
 // src/api.js
+
 import axios from 'axios';
 
-console.log("REACT_APP_API =", process.env.REACT_APP_API);
-
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API,
+  baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
 });
 
 api.interceptors.request.use(config => {
@@ -15,4 +14,13 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-export default api;
+const publicApi = axios.create({
+  baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
+});
+
+export { api, publicApi };
+
+
+
+
+

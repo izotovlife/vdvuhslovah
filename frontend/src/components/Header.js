@@ -1,14 +1,12 @@
 // frontend/src/components/Header.js
 
-// frontend/src/components/Header.js
-
 import React, { useContext } from 'react';
 import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 export default function Header() {
-  const { isLoggedIn, logout } = useContext(AuthContext);
+  const { isLoggedIn, logout, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -29,9 +27,14 @@ export default function Header() {
         </Typography>
 
         {isLoggedIn ? (
-          <Button color="inherit" onClick={handleLogout}>
-            Выйти
-          </Button>
+          <>
+            <Button color="inherit" component={Link} to="/profile">
+              {user?.username || 'Профиль'}
+            </Button>
+            <Button color="inherit" onClick={handleLogout}>
+              Выйти
+            </Button>
+          </>
         ) : (
           <>
             <Button color="inherit" component={Link} to="/login">
@@ -46,6 +49,5 @@ export default function Header() {
     </AppBar>
   );
 }
-
 
 

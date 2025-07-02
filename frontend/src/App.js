@@ -1,38 +1,63 @@
 // frontend/src/App.js
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useContext } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import HomePage from './pages/HomePage';
+import ProfilePage from './pages/ProfilePage';
+import WelcomePage from './pages/WelcomePage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import Header from './components/Header';
-import PostForm from './components/PostForm';
-import PostList from './components/PostList';
-import RegisterForm from './components/RegisterForm';
-import LoginForm from './components/LoginForm'; // компонент для входа
-// import Login from './pages/Login'; // можно удалить или использовать вместо LoginForm
+import { AuthProvider, AuthContext } from './context/AuthContext';
 
-function Home() {
-  const [refresh, setRefresh] = React.useState(false);
+function PrivateRoute({ children }) {
+  const { isLoggedIn } = useContext(AuthContext);
+  return isLoggedIn ? children : <Navigate to="/login" />;
+}
 
+function App() {
   return (
-    <main style={{ maxWidth: 600, margin: '20px auto' }}>
-      <PostForm onPostCreated={() => setRefresh(!refresh)} />
-      <PostList key={refresh} />
-    </main>
+    <AuthProvider>
+      <Router>
+        <Header />
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <HomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
+          />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/change-password"
+            element={
+              <PrivateRoute>
+                <ChangePasswordPage />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
-export default function App() {
-  return (
-    <Router>
-      <Header />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/register" element={<RegisterForm />} />
-        <Route path="/login" element={<LoginForm />} />
-        {/* Добавляй новые пути сюда */}
-      </Routes>
-    </Router>
-  );
-}
+export default App;
+
+
 
 
 
