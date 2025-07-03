@@ -1,15 +1,17 @@
 // src/components/LoginForm.js
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { TextField, Button, Box, Typography } from '@mui/material';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext); // Получаем login из контекста
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,8 +22,12 @@ export default function LoginForm() {
         username,
         password,
       });
-      localStorage.setItem('token', response.data.access);
-      navigate('/');
+
+      // Используем login из контекста, чтобы сохранить токен и получить пользователя
+      login(response.data.access);
+
+      // Перенаправляем на домашнюю страницу после входа
+      navigate('/home');
     } catch (err) {
       setError('Ошибка входа: ' + (err.response?.data?.detail || err.message));
     }

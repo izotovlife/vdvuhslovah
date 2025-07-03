@@ -1,14 +1,11 @@
 // frontend/src/pages/HomePage.js
 
-// frontend/src/pages/HomePage.js
-
 import React, { useEffect, useState, useContext } from 'react';
 import {
   Box,
   Typography,
   Container,
   Paper,
-  Divider,
   TextField,
   Button,
   IconButton,
@@ -126,7 +123,7 @@ const HomePage = () => {
     try {
       await api.post(
         `/posts/${postId}/comments/`,
-        { content: text },
+        { text }, // исправлено на text, как в модели
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       fetchComments(postId);
@@ -151,7 +148,6 @@ const HomePage = () => {
           Привет{user ? `, ${user.username}` : ''}!
         </Typography>
 
-        {/* Окно для нового поста */}
         {user && (
           <Box mb={4}>
             <TextField
@@ -168,7 +164,6 @@ const HomePage = () => {
           </Box>
         )}
 
-        {/* Лента постов */}
         {posts.map((post) => (
           <Paper key={post.id} sx={{ p: 2, mb: 3 }}>
             <Typography variant="subtitle1" fontWeight="bold">
@@ -188,14 +183,13 @@ const HomePage = () => {
               <IconButton size="small" onClick={() => handleRepost(post.id)}>
                 <RepeatIcon />
               </IconButton>
-              <Typography variant="body2">{post.repost_count}</Typography>
+              <Typography variant="body2">{post.repost_count || 0}</Typography>
 
               <Typography variant="body2" sx={{ ml: 'auto' }}>
                 Комментариев: {post.comment_count}
               </Typography>
             </Box>
 
-            {/* Комментарии */}
             <Box mt={2}>
               <Button size="small" onClick={() => fetchComments(post.id)}>
                 Показать комментарии
@@ -208,11 +202,10 @@ const HomePage = () => {
                   <Typography variant="body2" fontWeight="bold">
                     {comment.author_username}:
                   </Typography>
-                  <Typography variant="body2">{comment.content}</Typography>
+                  <Typography variant="body2">{comment.text}</Typography>
                 </Box>
               ))}
 
-              {/* Форма для нового комментария */}
               {user && (
                 <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
                   <TextField
@@ -241,7 +234,6 @@ const HomePage = () => {
         ))}
       </Box>
 
-      {/* Блок популярных постов справа */}
       <Box sx={{ flex: 1 }}>
         <Typography variant="h5" mb={2}>
           Популярные публикации
@@ -256,7 +248,7 @@ const HomePage = () => {
               </Typography>
               <Typography sx={{ whiteSpace: 'pre-wrap' }}>{post.content}</Typography>
               <Typography variant="caption" color="text.secondary">
-                Лайков: {post.like_count} | Репостов: {post.repost_count} | Комментариев:{' '}
+                Лайков: {post.like_count} | Репостов: {post.repost_count || 0} | Комментариев:{' '}
                 {post.comment_count}
               </Typography>
             </Paper>

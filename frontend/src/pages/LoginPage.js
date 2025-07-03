@@ -1,4 +1,4 @@
-//frontend/src/pages/LoginPage.js
+// frontend/src/pages/LoginPage.js
 
 import React, { useState, useContext } from 'react';
 import { TextField, Button, Container, Typography, Box } from '@mui/material';
@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-export default function Login() {
+export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,8 +22,8 @@ export default function Login() {
         password,
       });
       const token = response.data.access;
-      login(token); // Обновляем состояние и сохраняем токен
-      navigate('/home'); // Редирект после успешного входа
+      await login(token); // добавлен await для корректного ожидания загрузки пользователя
+      navigate('/home'); // переход после успешного логина
     } catch (err) {
       setError('Неверный логин или пароль');
     }
@@ -43,6 +43,7 @@ export default function Login() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
+          autoFocus
         />
         <TextField
           label="Пароль"

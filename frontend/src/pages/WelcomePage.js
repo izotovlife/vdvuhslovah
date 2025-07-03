@@ -1,33 +1,26 @@
 // frontend/src/pages/WelcomePage.js
 
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box, Typography, Button, Link, Fade, Paper, TextField, Alert
 } from '@mui/material';
-import { api, publicApi } from '../api';
 import moscowImage from '../assets/moscow.jpg';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import axios from 'axios';
 
 const WelcomePage = () => {
-  const [showForm, setShowForm] = useState(false);
   const [showHeaderText, setShowHeaderText] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
+  const [isLogin, setIsLogin] = useState(false); // false — показываем регистрацию, true — вход
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  // Получаем функцию login из контекста
   const { login } = useContext(AuthContext);
 
   useEffect(() => {
-    const headerTimer = setTimeout(() => setShowHeaderText(true), 500);
-    const formTimer = setTimeout(() => setShowForm(true), 4000);
-    return () => {
-      clearTimeout(headerTimer);
-      clearTimeout(formTimer);
-    };
+    const timer = setTimeout(() => setShowHeaderText(true), 500);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleChange = (e) =>
@@ -38,16 +31,12 @@ const WelcomePage = () => {
     setError('');
     setSuccess('');
     try {
-      await publicApi.post('/register/', formData); // Используем publicApi без токена
-      setSuccess('Вы успешно зарегистрированы!');
+      await axios.post('/api/register/', formData);
+      setSuccess('Регистрация успешна! Теперь войдите.');
       setFormData({ username: '', email: '', password: '' });
+      setIsLogin(true);
     } catch (err) {
-      if (err.response?.data) {
-        const messages = Object.values(err.response.data).flat().join(' ');
-        setError(messages);
-      } else {
-        setError('Ошибка при регистрации.');
-      }
+      setError(err.response?.data?.detail || 'Ошибка при регистрации');
     }
   };
 
@@ -56,29 +45,24 @@ const WelcomePage = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await publicApi.post('/token/', { username: formData.username, password: formData.password });
-      // Сохраняем токен в localStorage и обновляем контекст
+      const response = await axios.post('/api/token/', {
+        username: formData.username,
+        password: formData.password,
+      });
       login(response.data.access);
-      setSuccess('Вы успешно вошли!');
-      setFormData({ username: '', email: '', password: '' });
       navigate('/home');
     } catch (err) {
-      if (err.response?.data) {
-        const messages = Object.values(err.response.data).flat().join(' ');
-        setError(messages);
-      } else {
-        setError('Ошибка при входе.');
-      }
+      setError('Ошибка входа: ' + (err.response?.data?.detail || err.message));
     }
   };
+
+  if (!showHeaderText) return null;
 
   return (
     <Box
       sx={{
         height: '100vh',
         width: '100vw',
-        maxWidth: '100vw',
-        overflowX: 'hidden',
         backgroundImage: `url(${moscowImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -90,14 +74,7 @@ const WelcomePage = () => {
         boxSizing: 'border-box',
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          bgcolor: 'rgba(0, 0, 0, 0.6)',
-          zIndex: 0,
-        }}
-      />
+      <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.6)', zIndex: 0 }} />
       <Box
         sx={{
           position: 'relative',
@@ -114,13 +91,12 @@ const WelcomePage = () => {
         <Typography variant="subtitle1" mt={1}>
           российский сервис микроблогов
         </Typography>
-        <Fade in={showHeaderText} timeout={800}>
-          <Typography variant="h4" mt={4} sx={{ userSelect: 'none' }}>
-            Добро пожаловать!
-          </Typography>
-        </Fade>
+        <Typography variant="h4" mt={4} sx={{ userSelect: 'none' }}>
+          Добро пожаловать!
+        </Typography>
       </Box>
-      <Fade in={showForm} timeout={1000}>
+
+      <Fade in timeout={500}>
         <Box
           sx={{
             position: 'relative',
@@ -131,74 +107,102 @@ const WelcomePage = () => {
           }}
         >
           <Paper elevation={10} sx={{ p: 4, borderRadius: 3 }}>
-            <Typography variant="h5" mb={2} fontWeight="bold" textAlign="center">
-              {isLogin ? 'Вход' : 'Регистрация'}
-            </Typography>
-            {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-            <form onSubmit={isLogin ? handleLogin : handleRegister}>
-              <TextField
-                label="Имя пользователя"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                fullWidth
-                margin="normal"
-                required
-              />
-              {!isLogin && (
-                <TextField
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  fullWidth
-                  margin="normal"
-                  required
-                />
-              )}
-              <TextField
-                label="Пароль"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                fullWidth
-                margin="normal"
-                required
-              />
-              <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2, mb: 2 }}>
-                {isLogin ? 'Войти' : 'Зарегистрироваться'}
-              </Button>
-            </form>
-            <Typography textAlign="center">
-              {isLogin ? (
-                <>
+            {isLogin ? (
+              <>
+                <Typography variant="h5" mb={2} fontWeight="bold" textAlign="center">
+                  Вход
+                </Typography>
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                <form onSubmit={handleLogin}>
+                  <TextField
+                    label="Имя пользователя"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="normal"
+                    required
+                  />
+                  <TextField
+                    label="Пароль"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="normal"
+                    required
+                  />
+                  <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2, mb: 2 }}>
+                    Войти
+                  </Button>
+                </form>
+                <Typography textAlign="center">
                   Нет аккаунта?{' '}
                   <Link component="button" onClick={() => {
                     setIsLogin(false);
-                    setSuccess('');
                     setError('');
+                    setSuccess('');
                     setFormData({ username: '', email: '', password: '' });
                   }}>
                     Зарегистрироваться
                   </Link>
-                </>
-              ) : (
-                <>
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="h5" mb={2} fontWeight="bold" textAlign="center">
+                  Регистрация
+                </Typography>
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                <form onSubmit={handleRegister}>
+                  <TextField
+                    label="Имя пользователя"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="normal"
+                    required
+                  />
+                  <TextField
+                    label="Email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="normal"
+                  />
+                  <TextField
+                    label="Пароль"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="normal"
+                    required
+                  />
+                  <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2, mb: 2 }}>
+                    Зарегистрироваться
+                  </Button>
+                </form>
+                <Typography textAlign="center">
                   Уже зарегистрированы?{' '}
                   <Link component="button" onClick={() => {
                     setIsLogin(true);
-                    setSuccess('');
                     setError('');
+                    setSuccess('');
                     setFormData({ username: '', email: '', password: '' });
                   }}>
                     Войти
                   </Link>
-                </>
-              )}
-            </Typography>
+                </Typography>
+              </>
+            )}
           </Paper>
         </Box>
       </Fade>

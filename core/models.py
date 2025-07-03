@@ -1,14 +1,17 @@
 #C:\Users\ASUS Vivobook\PycharmProjects\PythonProject\vdvuhslovah\core\models.py
 
-# core/models.py
-
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     subscriptions = models.ManyToManyField('self', symmetrical=False, related_name='subscribers', blank=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
         return self.user.username
@@ -40,3 +43,15 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'Комментарий от {self.author.username} к посту {self.post.id}'
+
+# Сигнал для автосоздания профиля при создании пользователя
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+    else:
+        # Если профиль отсутствует (на всякий случай), создать его
+        if not hasattr(instance, 'profile'):
+            Profile.objects.create(user=instance)
+        else:
+            instance.profile.save()

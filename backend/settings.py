@@ -1,4 +1,7 @@
+# backend/settings.py
+
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,7 +85,11 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+# Добавляем настройки для media-файлов (аватары)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -105,7 +112,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 # ]
 
 # Настройки Simple JWT (по желанию, можно оставить дефолтные)
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # время жизни access токена
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),

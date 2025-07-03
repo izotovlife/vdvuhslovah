@@ -2,32 +2,41 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, Container, Box, Alert } from '@mui/material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { TextField, Button, Typography, Container, Box, Alert, Link } from '@mui/material';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
   });
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     try {
       await axios.post('/api/register/', formData);
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Ошибка при регистрации');
+      const data = err.response?.data;
+      if (data) {
+        if (typeof data === 'string') setError(data);
+        else if (typeof data.detail === 'string') setError(data.detail);
+        else if (typeof data.username === 'object') setError(data.username.join(' '));
+        else setError('Ошибка при регистрации');
+      } else {
+        setError('Ошибка сети или сервера');
+      }
     }
   };
 
@@ -72,7 +81,10 @@ const RegisterPage = () => {
           </Button>
         </form>
         <Typography align="center" sx={{ mt: 2 }}>
-          Уже зарегистрированы? <a href="/login">Войти</a>
+          Уже зарегистрированы?{' '}
+          <Link component={RouterLink} to="/login" underline="hover">
+            Войти
+          </Link>
         </Typography>
       </Box>
     </Container>

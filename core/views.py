@@ -1,9 +1,10 @@
-# core/views.py
+# C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\views.py
 
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Count
 from django.contrib.auth.models import User
 from .models import Post, Favorite, Comment
@@ -11,7 +12,6 @@ from .serializers import (
     PostSerializer, FavoriteSerializer, CommentSerializer,
     UserProfileSerializer, UserSerializer
 )
-
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
@@ -56,32 +56,34 @@ class PostViewSet(viewsets.ModelViewSet):
         ).order_by('-num_likes', '-num_comments')[:10]
         return Response(self.get_serializer(posts, many=True).data)
 
-
 class FavoriteViewSet(viewsets.ModelViewSet):
     queryset = Favorite.objects.all()
     serializer_class = FavoriteSerializer
     permission_classes = [permissions.IsAuthenticated]
-
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
 
-
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]  # Для поддержки загрузки файлов
 
     def get(self, request):
-        serializer = UserProfileSerializer(request.user)
+        serializer = UserProfileSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
     def put(self, request):
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        serializer = UserProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-
 
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -97,4 +99,3 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({'detail': 'Пароль успешно изменён'})
-

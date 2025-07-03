@@ -1,184 +1,171 @@
-// frontend/src/pages/ProfilePage.js
+//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\ProfilePage.js
 
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
 import {
-  Box,
-  Typography,
-  Button,
   TextField,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Alert,
+  Button,
+  Avatar,
+  Typography,
+  Box,
+  CircularProgress,
 } from '@mui/material';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
 
-const ProfilePage = () => {
-  const { user, accessToken } = useContext(AuthContext);
-  const [formData, setFormData] = useState({ email: '', phone: '' });
-  const [editing, setEditing] = useState(false);
-  const [userPosts, setUserPosts] = useState([]);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+export default function ProfilePage() {
+  const { accessToken: token } = useContext(AuthContext);
+
+  const [formData, setFormData] = useState({
+    email: '',
+    phone: '',
+    first_name: '',
+    last_name: '',
+    avatar: null,
+  });
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!token) return;
 
-    const fetchProfile = async () => {
-      try {
-        const response = await axios.get('/api/me/', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+    setLoading(true);
+    axios
+      .get('/api/profile/', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const data = res.data;
         setFormData({
-          email: response.data.email,
-          phone: response.data.phone || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          avatar: null,
         });
-      } catch (e) {
-        console.error('Ошибка загрузки профиля:', e);
-        setError('Ошибка загрузки профиля');
-      }
-    };
-
-    const fetchPosts = async () => {
-      if (!user || !user.id) {
-        // Пользователь ещё не загружен — не запрашиваем посты
-        return;
-      }
-      try {
-        const response = await axios.get(`/api/posts/?author=${user.id}`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        setUserPosts(response.data);
-      } catch (e) {
-        console.error('Ошибка загрузки постов пользователя:', e);
-        setError('Ошибка загрузки публикаций');
-      }
-    };
-
-    fetchProfile();
-    fetchPosts();
-  }, [accessToken, user]);
+        setPreview(data.avatar || null);
+      })
+      .catch(() => {
+        // Обработка ошибки
+      })
+      .finally(() => setLoading(false));
+  }, [token]);
 
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setError('');
-    setSuccess('');
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
-    setError('');
-    setSuccess('');
-    try {
-      const response = await axios.put('/api/me/', formData, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      setFormData({
-        email: response.data.email,
-        phone: response.data.phone || '',
-      });
-      setEditing(false);
-      setSuccess('Профиль успешно сохранён');
-    } catch (e) {
-      console.error('Ошибка сохранения профиля:', e);
-      if (e.response?.data) {
-        setError(JSON.stringify(e.response.data));
-      } else {
-        setError('Ошибка при сохранении профиля');
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFormData((prev) => ({ ...prev, avatar: file }));
+    if (file) {
+      if (preview) {
+        URL.revokeObjectURL(preview);
       }
+      setPreview(URL.createObjectURL(file));
     }
   };
 
-  if (!user) {
-    return <Typography sx={{ mt: 4, textAlign: 'center' }}>Загрузка профиля...</Typography>;
-  }
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!token) return;
+
+    const data = new FormData();
+    data.append('email', formData.email);
+    data.append('phone', formData.phone);
+    data.append('first_name', formData.first_name);
+    data.append('last_name', formData.last_name);
+    if (formData.avatar) data.append('avatar', formData.avatar);
+
+    setLoading(true);
+    axios
+      .put('/api/profile/', data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      .then((res) => {
+        alert('Профиль обновлен');
+        if (res.data.avatar) setPreview(res.data.avatar);
+        setFormData((prev) => ({ ...prev, avatar: null }));
+      })
+      .catch(() => alert('Ошибка при обновлении'))
+      .finally(() => setLoading(false));
+  };
+
+  if (loading) return <CircularProgress />;
 
   return (
-    <Box maxWidth="sm" mx="auto" p={3}>
-      <Typography variant="h4" mb={3}>Личный кабинет</Typography>
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      sx={{
+        maxWidth: 400,
+        mx: 'auto',
+        mt: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      }}
+      encType="multipart/form-data"
+    >
+      <Typography variant="h5" align="center">
+        Редактировать профиль
+      </Typography>
 
-      <Box mb={2}>
-        <Typography variant="subtitle1" fontWeight="bold">Имя пользователя:</Typography>
-        <Typography>{user?.username}</Typography>
-      </Box>
+      <Avatar
+        src={preview || ''}
+        alt="Аватар"
+        sx={{ width: 100, height: 100, mx: 'auto', mb: 2, objectFit: 'cover' }}
+      />
 
-      <Box mb={2}>
-        <Typography variant="subtitle1" fontWeight="bold">Email:</Typography>
-        {editing ? (
-          <TextField
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            fullWidth
-            type="email"
-          />
-        ) : (
-          <Typography>{formData.email}</Typography>
-        )}
-      </Box>
+      <Button variant="contained" component="label" sx={{ mb: 2 }}>
+        Загрузить фото
+        <input type="file" hidden accept="image/*" onChange={handleFileChange} />
+      </Button>
 
-      <Box mb={2}>
-        <Typography variant="subtitle1" fontWeight="bold">Телефон:</Typography>
-        {editing ? (
-          <TextField
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            fullWidth
-          />
-        ) : (
-          <Typography>{formData.phone || 'Не указано'}</Typography>
-        )}
-      </Box>
+      <TextField
+        label="Имя"
+        name="first_name"
+        value={formData.first_name}
+        onChange={handleChange}
+        fullWidth
+      />
+      <TextField
+        label="Фамилия"
+        name="last_name"
+        value={formData.last_name}
+        onChange={handleChange}
+        fullWidth
+      />
+      <TextField
+        label="Телефон"
+        name="phone"
+        value={formData.phone}
+        onChange={handleChange}
+        fullWidth
+      />
+      <TextField
+        label="Email"
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleChange}
+        fullWidth
+      />
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
-
-      {editing ? (
-        <Box display="flex" gap={2} mt={2}>
-          <Button variant="contained" color="primary" onClick={handleSave}>
-            Сохранить
-          </Button>
-          <Button variant="outlined" onClick={() => setEditing(false)}>
-            Отмена
-          </Button>
-        </Box>
-      ) : (
-        <Button variant="contained" onClick={() => setEditing(true)}>
-          Редактировать
-        </Button>
-      )}
-
-      <Divider sx={{ my: 4 }} />
-
-      <Typography variant="h5" mb={2}>Мои публикации</Typography>
-      {userPosts.length === 0 ? (
-        <Typography>Публикаций пока нет.</Typography>
-      ) : (
-        <List>
-          {userPosts.map(post => (
-            <ListItem key={post.id} alignItems="flex-start">
-              <ListItemText
-                primary={post.content}
-                secondary={`Лайков: ${post.like_count} | Репостов: ${post.repost_count}`}
-              />
-            </ListItem>
-          ))}
-        </List>
-      )}
+      <Button type="submit" variant="contained" color="primary" disabled={loading}>
+        Сохранить
+      </Button>
     </Box>
   );
-};
-
-export default ProfilePage;
-
+}
