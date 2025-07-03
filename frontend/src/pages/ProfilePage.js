@@ -1,4 +1,4 @@
-//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\ProfilePage.js
+// frontend/src/pages/ProfilePage.js
 
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
@@ -9,11 +9,14 @@ import {
   Typography,
   Box,
   CircularProgress,
+  Stack,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import { AuthContext } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  const { accessToken: token } = useContext(AuthContext);
+  const { accessToken: token, updateUser } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -22,8 +25,20 @@ export default function ProfilePage() {
     last_name: '',
     avatar: null,
   });
+  const [savedData, setSavedData] = useState({
+    email: '',
+    phone: '',
+    first_name: '',
+    last_name: '',
+    avatar: null,
+  });
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   useEffect(() => {
     if (!token) return;
@@ -35,20 +50,33 @@ export default function ProfilePage() {
       })
       .then((res) => {
         const data = res.data;
-        setFormData({
+        const profileData = {
           email: data.email || '',
           phone: data.phone || '',
           first_name: data.first_name || '',
           last_name: data.last_name || '',
-          avatar: null,
-        });
+          avatar: data.avatar || null,
+        };
+        setFormData({ ...profileData, avatar: null });
+        setSavedData(profileData);
         setPreview(data.avatar || null);
       })
       .catch(() => {
-        // Обработка ошибки
+        showSnackbar('Ошибка при загрузке профиля', 'error');
       })
       .finally(() => setLoading(false));
   }, [token]);
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbarOpen(false);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -59,18 +87,14 @@ export default function ProfilePage() {
     const file = e.target.files[0];
     setFormData((prev) => ({ ...prev, avatar: file }));
     if (file) {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
+      if (preview) URL.revokeObjectURL(preview);
       setPreview(URL.createObjectURL(file));
     }
   };
 
   useEffect(() => {
     return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
+      if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
@@ -94,15 +118,69 @@ export default function ProfilePage() {
         },
       })
       .then((res) => {
-        alert('Профиль обновлен');
-        if (res.data.avatar) setPreview(res.data.avatar);
+        showSnackbar('Профиль обновлен', 'success');
+
+        const updatedData = {
+          email: res.data.email || formData.email,
+          phone: res.data.phone || formData.phone,
+          first_name: res.data.first_name || formData.first_name,
+          last_name: res.data.last_name || formData.last_name,
+          avatar: res.data.avatar || preview,
+        };
+        setSavedData(updatedData);
         setFormData((prev) => ({ ...prev, avatar: null }));
+        setPreview(updatedData.avatar);
+        setIsEditing(false);
+
+        if (updateUser) {
+          updateUser({ avatar: updatedData.avatar });
+        }
       })
-      .catch(() => alert('Ошибка при обновлении'))
+      .catch(() => {
+        showSnackbar('Ошибка при обновлении', 'error');
+      })
       .finally(() => setLoading(false));
   };
 
-  if (loading) return <CircularProgress />;
+  if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
+
+  if (!isEditing) {
+    return (
+      <Box sx={{ maxWidth: 400, mx: 'auto', mt: 4 }}>
+        <Typography variant="h5" align="center" mb={2}>
+          Профиль
+        </Typography>
+
+        <Avatar
+          src={savedData.avatar || ''}
+          alt="Аватар"
+          sx={{ width: 100, height: 100, mx: 'auto', mb: 2, objectFit: 'cover' }}
+        />
+
+        <Stack spacing={1} sx={{ mb: 2 }}>
+          <Typography><strong>Имя:</strong> {savedData.first_name || '-'}</Typography>
+          <Typography><strong>Фамилия:</strong> {savedData.last_name || '-'}</Typography>
+          <Typography><strong>Телефон:</strong> {savedData.phone || '-'}</Typography>
+          <Typography><strong>Email:</strong> {savedData.email || '-'}</Typography>
+        </Stack>
+
+        <Button variant="contained" fullWidth onClick={() => setIsEditing(true)}>
+          Редактировать
+        </Button>
+
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -166,6 +244,17 @@ export default function ProfilePage() {
       <Button type="submit" variant="contained" color="primary" disabled={loading}>
         Сохранить
       </Button>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

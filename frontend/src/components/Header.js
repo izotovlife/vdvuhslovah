@@ -1,4 +1,6 @@
-// Путь: frontend/src/components/Header.js
+// frontend/src/components/Header.js
+
+// frontend/src/components/Header.js
 
 import React, { useContext } from 'react';
 import { AppBar, Toolbar, IconButton, Avatar, Button, Typography } from '@mui/material';
@@ -18,8 +20,8 @@ export default function Header() {
   const hiddenPaths = ['/', '/login', '/register', '/welcome'];
   if (!isLoggedIn || hiddenPaths.includes(location.pathname)) return null;
 
-  // Собираем полный URL аватара
-  const avatarUrl = user?.avatar ? `http://localhost:8000${user.avatar}` : undefined;
+  // Формируем полный URL аватара
+  const avatarUrl = user?.profile?.avatar ? `http://localhost:8000${user.profile.avatar}` : undefined;
 
   return (
     <AppBar position="static">

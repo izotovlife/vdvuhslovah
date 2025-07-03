@@ -18,9 +18,8 @@ const publicApi = axios.create({
   baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
 });
 
-export { api, publicApi };
-
-
+export default api;
+export { publicApi };
 
 
 

@@ -1,8 +1,5 @@
-// src/components/PostForm.js
-
 import React, { useState } from 'react';
-import { Box, TextField, Button } from '@mui/material';
-import api from '../api';  // импорт единого экземпляра
+import api from '../api';
 
 export default function PostForm({ onPostCreated }) {
   const [content, setContent] = useState('');
@@ -10,34 +7,23 @@ export default function PostForm({ onPostCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim()) return;
-
     try {
-      await api.post('posts/', { content });  // только относительный путь
+      const res = await api.post('/posts/', { content });
+      onPostCreated(res.data);
       setContent('');
-      if (onPostCreated) onPostCreated();
-    } catch (err) {
-      console.error('Ошибка при создании поста:', err);
-      alert('Ошибка при создании поста: ' + (err.response?.data?.detail || err.message));
+    } catch (error) {
+      console.error('Ошибка при создании поста:', error);
     }
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mb: 2 }}>
-      <TextField
-        fullWidth
-        label="Что нового?"
-        variant="outlined"
+    <form onSubmit={handleSubmit}>
+      <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        inputProps={{ maxLength: 200 }}
-        multiline
-        maxRows={4}
+        placeholder="Напишите что-нибудь..."
       />
-      <Button type="submit" variant="contained" sx={{ mt: 2 }}>
-        Опубликовать
-      </Button>
-    </Box>
+      <button type="submit">Опубликовать</button>
+    </form>
   );
 }
-
-

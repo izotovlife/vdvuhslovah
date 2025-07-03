@@ -13,7 +13,7 @@ import {
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import { AuthContext } from '../context/AuthContext';
-import { api } from '../api';
+import api from '../api';  // <- здесь импорт по умолчанию без фигурных скобок
 
 const HomePage = () => {
   const { user, accessToken } = useContext(AuthContext);
@@ -123,7 +123,7 @@ const HomePage = () => {
     try {
       await api.post(
         `/posts/${postId}/comments/`,
-        { text }, // исправлено на text, как в модели
+        { text }, // должно совпадать с бэкендом
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       fetchComments(postId);

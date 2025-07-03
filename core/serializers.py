@@ -1,115 +1,105 @@
-# core/serializers.py
-
-# core/serializers.py
+#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\serializers.py
 
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
-from .models import Post, Favorite, Comment, Profile
 from django.contrib.auth.models import User
+from .models import Profile, Post, Repost, Comment
 
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ('id', 'avatar', 'bio', 'phone')
 
-class CommentSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='author.username', read_only=True)
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    # Поля из связанной модели User
+    first_name = serializers.CharField(source='user.first_name', allow_blank=True, required=False)
+    last_name = serializers.CharField(source='user.last_name', allow_blank=True, required=False)
+    email = serializers.EmailField(source='user.email', required=False)
 
     class Meta:
-        model = Comment
-        fields = ['id', 'author_username', 'text', 'created_at']
-
-
-class PostSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='author.username', read_only=True)
-    like_count = serializers.IntegerField(source='likes.count', read_only=True)
-    comment_count = serializers.IntegerField(source='comments.count', read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
-    is_repost = serializers.SerializerMethodField()
-    original_post = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = Post
-        fields = [
-            'id', 'author_username', 'content', 'created_at',
-            'like_count', 'comment_count', 'comments',
-            'original_post', 'is_repost'
-        ]
-
-    def get_is_repost(self, obj):
-        return obj.original_post is not None
-
-
-class FavoriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Favorite
-        fields = '__all__'
-        read_only_fields = ['id']
-
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    phone = serializers.CharField(allow_blank=True, required=False)
-    avatar = serializers.ImageField(allow_null=True, required=False)
-    first_name = serializers.CharField(allow_blank=True, required=False)
-    last_name = serializers.CharField(allow_blank=True, required=False)
-
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'phone', 'avatar', 'first_name', 'last_name']
-        extra_kwargs = {
-            'email': {
-                'required': False,
-                'allow_blank': True,
-                'validators': [UniqueValidator(queryset=User.objects.all())]
-            },
-            'username': {
-                'validators': [UniqueValidator(queryset=User.objects.all())]
-            }
-        }
-
-    def to_representation(self, instance):
-        profile = instance.profile
-        rep = super().to_representation(instance)
-        rep['phone'] = profile.phone
-        rep['avatar'] = profile.avatar.url if profile.avatar else None
-        rep['first_name'] = profile.first_name
-        rep['last_name'] = profile.last_name
-        return rep
+        model = Profile
+        fields = ('avatar', 'bio', 'phone', 'first_name', 'last_name', 'email')
 
     def update(self, instance, validated_data):
-        # Обновление User
-        instance.email = validated_data.get('email', instance.email)
-        instance.username = validated_data.get('username', instance.username)
-        instance.save()
+        user_data = validated_data.pop('user', {})
+        user = instance.user
 
-        # Обновление Profile
-        profile = instance.profile
-        profile.phone = validated_data.get('phone', profile.phone)
-        if 'avatar' in self.initial_data:
-            profile.avatar = self.initial_data.get('avatar')
-        profile.first_name = validated_data.get('first_name', profile.first_name)
-        profile.last_name = validated_data.get('last_name', profile.last_name)
-        profile.save()
+        for attr, value in user_data.items():
+            setattr(user, attr, value)
+        user.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
 
         return instance
 
-
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    email = serializers.EmailField(
-        required=False,
-        allow_blank=True,
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
-    username = serializers.CharField(
-        validators=[UniqueValidator(queryset=User.objects.all())]
-    )
+    profile = ProfileSerializer(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password']
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'profile')
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'user', 'content', 'created_at')
+
+class RepostSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Repost
+        fields = ('id', 'user', 'created_at', 'original_post')
+
+class PostSerializer(serializers.ModelSerializer):
+    author = UserSerializer(read_only=True)
+    like_count = serializers.IntegerField(source='like_count', read_only=True)
+    comment_count = serializers.IntegerField(source='comment_count', read_only=True)
+    repost_count = serializers.IntegerField(source='repost_count', read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    reposts = RepostSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Post
+        fields = ('id', 'author', 'content', 'created_at',
+                  'like_count', 'comment_count', 'repost_count',
+                  'comments', 'reposts')
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password2 = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password', 'password2')
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'required': True}
+        }
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Это имя пользователя уже занято, выберите другое.")
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Этот адрес электронной почты уже используется.")
+        return value
+
+    def validate(self, data):
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError({"password2": "Пароли не совпадают"})
+        return data
 
     def create(self, validated_data):
-        user = User(
+        validated_data.pop('password2')
+        user = User.objects.create_user(
             username=validated_data['username'],
-            email=validated_data.get('email', '')
+            email=validated_data['email'],
+            password=validated_data['password']
         )
-        user.set_password(validated_data['password'])
-        user.save()
+        Profile.objects.create(user=user)
         return user

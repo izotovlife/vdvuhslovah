@@ -11,22 +11,34 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext); // Получаем login из контекста
+  const { login } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API}/token/`, {
+      // Шаг 1: Получаем токены
+      const tokenResponse = await axios.post(`${process.env.REACT_APP_API}/token/`, {
         username,
         password,
       });
 
-      // Используем login из контекста, чтобы сохранить токен и получить пользователя
-      login(response.data.access);
+      const { access, refresh } = tokenResponse.data;
 
-      // Перенаправляем на домашнюю страницу после входа
+      // Шаг 2: Получаем пользователя
+      const userResponse = await axios.get(`${process.env.REACT_APP_API}/me/`, {
+        headers: {
+          Authorization: `Bearer ${access}`,
+        },
+      });
+
+      const user = userResponse.data;
+
+      // Шаг 3: Сохраняем пользователя и токены
+      login(user, access, refresh);
+
+      // Шаг 4: Переход на домашнюю страницу
       navigate('/home');
     } catch (err) {
       setError('Ошибка входа: ' + (err.response?.data?.detail || err.message));
@@ -64,4 +76,3 @@ export default function LoginForm() {
     </Box>
   );
 }
-

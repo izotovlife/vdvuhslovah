@@ -1,13 +1,8 @@
-// frontend/src/context/AuthContext.js
-
-// frontend/src/context/AuthContext.js
-
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 export const AuthContext = createContext();
 
-// Создаем axios instance с базовым URL из env
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
 });
@@ -25,20 +20,29 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Функция для получения данных пользователя
-  const fetchUser = useCallback(async (token) => {
-    try {
-      setAuthHeader(token);
-      const response = await axiosInstance.get('/me/');
-      setUser(response.data);
-      setIsLoggedIn(true);
-    } catch (error) {
-      console.error('Ошибка получения профиля:', error);
-      logout();
-    }
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setUser(null);
+    setAccessToken(null);
+    setAuthHeader(null);
   }, []);
 
-  // При монтировании проверяем токен в localStorage и загружаем пользователя
+  const fetchUser = useCallback(
+    async (token) => {
+      try {
+        setAuthHeader(token);
+        const response = await axiosInstance.get('/me/');
+        setUser(response.data);
+        setIsLoggedIn(true);
+      } catch (error) {
+        console.error('Ошибка получения профиля:', error);
+        logout();
+      }
+    },
+    [logout]
+  );
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -47,7 +51,6 @@ export function AuthProvider({ children }) {
     }
   }, [fetchUser]);
 
-  // Функция логина — сохраняет токен, выставляет авторизацию и грузит профиль
   const login = async (token) => {
     localStorage.setItem('token', token);
     setAccessToken(token);
@@ -55,17 +58,18 @@ export function AuthProvider({ children }) {
     await fetchUser(token);
   };
 
-  // Функция логаута — очищает токен и состояние
-  const logout = () => {
-    localStorage.removeItem('token');
-    setIsLoggedIn(false);
-    setUser(null);
-    setAccessToken(null);
-    setAuthHeader(null);
+  // Функция обновления части данных пользователя, например аватара
+  const updateUser = (newUserData) => {
+    setUser((prevUser) => ({
+      ...prevUser,
+      ...newUserData,
+    }));
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, accessToken, login, logout, axiosInstance }}>
+    <AuthContext.Provider
+      value={{ isLoggedIn, user, accessToken, login, logout, axiosInstance, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
