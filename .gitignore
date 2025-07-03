@@ -1,17 +1,38 @@
 # Python
 __pycache__/
 *.py[cod]
-*.sqlite3
+*.pyo
+*.pyd
 *.pyc
+*.log
+*.sqlite3
+db.sqlite3
 
-# Media/uploads
+# Django
+/media/
 media/
+*.bak
+*.swp
 
-# VSCode
-.vscode/
+# Environments
+.env
+.env.*
+env/
+venv/
+.venv/
 
-# MacOS
-.DS_Store
-
-# Node
+# Node / React
 node_modules/
+build/
+dist/
+
+# Editors
+.vscode/
+.idea/
+
+# System
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
