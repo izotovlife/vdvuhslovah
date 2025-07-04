@@ -12,7 +12,6 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s profile"
 
-
 class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField(max_length=280)
@@ -31,7 +30,6 @@ class Post(models.Model):
     def repost_count(self):
         return self.reposts.count()
 
-
 class Repost(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     original_post = models.ForeignKey(Post, related_name='reposts', on_delete=models.CASCADE)
@@ -39,7 +37,6 @@ class Repost(models.Model):
 
     def __str__(self):
         return f"{self.user.username} reposted {self.original_post.id}"
-
 
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -49,7 +46,6 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} commented on {self.post.id}"
-
 
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

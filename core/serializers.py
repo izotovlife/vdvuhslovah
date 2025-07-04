@@ -4,13 +4,14 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile, Post, Repost, Comment
 
+
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ('id', 'avatar', 'bio', 'phone')
 
+
 class ProfileUpdateSerializer(serializers.ModelSerializer):
-    # Поля из связанной модели User
     first_name = serializers.CharField(source='user.first_name', allow_blank=True, required=False)
     last_name = serializers.CharField(source='user.last_name', allow_blank=True, required=False)
     email = serializers.EmailField(source='user.email', required=False)
@@ -33,6 +34,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 
         return instance
 
+
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
 
@@ -40,33 +42,58 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'email', 'profile')
 
+
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    post_id = serializers.IntegerField(write_only=True)
+    post_content = serializers.CharField(source='post.content', read_only=True)
+    post_author = serializers.CharField(source='post.author.username', read_only=True)
 
     class Meta:
         model = Comment
-        fields = ('id', 'user', 'content', 'created_at')
+        fields = (
+            'id', 'user', 'post_id',
+            'post_content', 'post_author',
+            'content', 'created_at'
+        )
+        read_only_fields = ('id', 'user', 'created_at')
+
+    def create(self, validated_data):
+        post_id = validated_data.pop('post_id')
+        return Comment.objects.create(post_id=post_id, **validated_data)
+
 
 class RepostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    original_post_content = serializers.CharField(source='original_post.content', read_only=True)
+    original_post_author = serializers.CharField(source='original_post.author.username', read_only=True)
+    original_post_id = serializers.IntegerField(source='original_post.id', read_only=True)
 
     class Meta:
         model = Repost
-        fields = ('id', 'user', 'created_at', 'original_post')
+        fields = (
+            'id', 'user', 'created_at',
+            'original_post', 'original_post_id',
+            'original_post_content', 'original_post_author'
+        )
+
 
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    like_count = serializers.IntegerField(source='like_count', read_only=True)
-    comment_count = serializers.IntegerField(source='comment_count', read_only=True)
-    repost_count = serializers.IntegerField(source='repost_count', read_only=True)
+    like_count = serializers.IntegerField(read_only=True)
+    comment_count = serializers.IntegerField(read_only=True)
+    repost_count = serializers.IntegerField(read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     reposts = RepostSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
-        fields = ('id', 'author', 'content', 'created_at',
-                  'like_count', 'comment_count', 'repost_count',
-                  'comments', 'reposts')
+        fields = (
+            'id', 'author', 'content', 'created_at',
+            'like_count', 'comment_count', 'repost_count',
+            'comments', 'reposts'
+        )
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)

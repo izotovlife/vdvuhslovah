@@ -1,9 +1,10 @@
-#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\views.py
+#backend/core/views.py
 
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from .models import Profile, Post, Repost, Comment
 from .serializers import (
@@ -16,13 +17,30 @@ class RegisterAPIView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
 
-class ProfileDetailAPIView(generics.RetrieveUpdateAPIView):
+class ProfileDetailAPIView(
+    mixins.UpdateModelMixin,
+    generics.GenericAPIView
+):
     queryset = Profile.objects.select_related("user")
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ProfileUpdateSerializer
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return ProfileUpdateSerializer
+        return ProfileSerializer
 
     def get_object(self):
         return Profile.objects.get(user=self.request.user)
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return Response(serializer.data)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
 
 class PostListCreateAPIView(generics.ListCreateAPIView):
     queryset = Post.objects.all().order_by('-created_at')
@@ -32,21 +50,47 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-class CommentCreateAPIView(generics.CreateAPIView):
-    queryset = Comment.objects.all()
+class PostCommentListAPIView(generics.ListAPIView):
     serializer_class = CommentSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        post_id = self.kwargs["pk"]
+        return Comment.objects.filter(post_id=post_id).order_by("-created_at")
+
+class PostCommentCreateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def post(self, request, pk):
+        post = get_object_or_404(Post, id=pk)
+        serializer = CommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, post=post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RepostCreateAPIView(generics.CreateAPIView):
-    queryset = Repost.objects.all()
-    serializer_class = RepostSerializer
+class PostRepostAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def post(self, request, pk):
+        post = get_object_or_404(Post, id=pk)
+        repost = Repost.objects.create(user=request.user, original_post=post)
+        serializer = RepostSerializer(repost)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class PostLikeAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        post = get_object_or_404(Post, id=pk)
+        user = request.user
+        if user in post.likes.all():
+            post.likes.remove(user)
+            liked = False
+        else:
+            post.likes.add(user)
+            liked = True
+        return Response({'liked': liked, 'like_count': post.likes.count()})
 
 class PopularPostsAPIView(generics.ListAPIView):
     serializer_class = PostSerializer
