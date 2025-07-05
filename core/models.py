@@ -1,7 +1,10 @@
-#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\models.py
+# backend/core/models.py
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.crypto import get_random_string
+from django.utils import timezone
+
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -11,6 +14,7 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s profile"
+
 
 class Post(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -30,13 +34,6 @@ class Post(models.Model):
     def repost_count(self):
         return self.reposts.count()
 
-class Repost(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    original_post = models.ForeignKey(Post, related_name='reposts', on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.username} reposted {self.original_post.id}"
 
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -45,7 +42,17 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} commented on {self.post.id}"
+        return f"{self.user.username} прокомментировал пост {self.post.id}"
+
+
+class Repost(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    original_post = models.ForeignKey(Post, related_name='reposts', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} репостнул пост {self.original_post.id}"
+
 
 class Favorite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -59,3 +66,23 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user.username} добавил в избранное пост {self.post.id}"
+
+
+class PasswordResetToken(models.Model):
+    """
+    Модель для хранения токенов восстановления пароля.
+    Каждый токен привязан к определенному пользователю и имеет срок действия.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def create_token(self):
+        """Метод для генерации уникального токена восстановления пароля."""
+        self.token = get_random_string(length=64)
+        self.expires_at = timezone.now() + timezone.timedelta(hours=24)
+        self.save()
+
+    def __str__(self):
+        return f"Password reset token for {self.user.username} (expires: {self.expires_at})"

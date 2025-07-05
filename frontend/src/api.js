@@ -2,8 +2,10 @@
 
 import axios from 'axios';
 
+const baseURL = process.env.REACT_APP_API || 'http://localhost:8000/api';
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
+  baseURL,
 });
 
 api.interceptors.request.use(config => {
@@ -14,12 +16,21 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-const publicApi = axios.create({
-  baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
-});
+const publicApi = axios.create({ baseURL });
+
+// Отправка email для сброса пароля
+export const sendPasswordResetEmail = async (email) => {
+  return await publicApi.post('/send-reset-email/', { email });
+};
+
+// Сброс пароля по uid, token и новому паролю
+export const resetPassword = async (uid, token, new_password) => {
+  return await publicApi.post('/reset-password/', {
+    uid,
+    token,
+    new_password,
+  });
+};
 
 export default api;
 export { publicApi };
-
-
-

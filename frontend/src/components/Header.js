@@ -1,6 +1,4 @@
-// frontend/src/components/Header.js
-
-// frontend/src/components/Header.js
+//frontend/src/components/Header.js
 
 import React, { useContext } from 'react';
 import { AppBar, Toolbar, IconButton, Avatar, Button, Typography } from '@mui/material';
@@ -14,13 +12,12 @@ export default function Header() {
 
   const handleLogout = () => {
     logout();
-    navigate('/'); // переход на WelcomePage
+    navigate('/');
   };
 
   const hiddenPaths = ['/', '/login', '/register', '/welcome'];
   if (!isLoggedIn || hiddenPaths.includes(location.pathname)) return null;
 
-  // Формируем полный URL аватара
   const avatarUrl = user?.profile?.avatar ? `http://localhost:8000${user.profile.avatar}` : undefined;
 
   return (

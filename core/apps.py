@@ -1,3 +1,5 @@
+#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\apps.py
+
 from django.apps import AppConfig
 
 

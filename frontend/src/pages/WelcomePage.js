@@ -1,5 +1,7 @@
 // frontend/src/pages/WelcomePage.js
 
+// frontend/src/pages/WelcomePage.js
+
 import React, { useState, useEffect, useContext } from 'react';
 import {
   Box, Typography, Button, Link, Fade, Paper, TextField, Alert
@@ -134,6 +136,13 @@ const WelcomePage = () => {
                     margin="normal"
                     required
                   />
+
+                  <Typography textAlign="right" sx={{ mt: 1, mb: 1 }}>
+                    <Link href="/forgot-password" underline="hover">
+                      Забыли пароль?
+                    </Link>
+                  </Typography>
+
                   <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2, mb: 2 }}>
                     Войти
                   </Button>

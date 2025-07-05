@@ -1,8 +1,10 @@
 // src/components/LoginForm.js
 
+// src/components/LoginForm.js
+
 import React, { useState, useContext } from 'react';
-import { TextField, Button, Box, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { TextField, Button, Box, Typography, Link } from '@mui/material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 
@@ -18,7 +20,6 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // Шаг 1: Получаем токены
       const tokenResponse = await axios.post(`${process.env.REACT_APP_API}/token/`, {
         username,
         password,
@@ -26,7 +27,6 @@ export default function LoginForm() {
 
       const { access, refresh } = tokenResponse.data;
 
-      // Шаг 2: Получаем пользователя
       const userResponse = await axios.get(`${process.env.REACT_APP_API}/me/`, {
         headers: {
           Authorization: `Bearer ${access}`,
@@ -34,11 +34,7 @@ export default function LoginForm() {
       });
 
       const user = userResponse.data;
-
-      // Шаг 3: Сохраняем пользователя и токены
       login(user, access, refresh);
-
-      // Шаг 4: Переход на домашнюю страницу
       navigate('/home');
     } catch (err) {
       setError('Ошибка входа: ' + (err.response?.data?.detail || err.message));
@@ -70,6 +66,13 @@ export default function LoginForm() {
           {error}
         </Typography>
       )}
+
+      <Box mt={1} textAlign="right">
+        <Link component={RouterLink} to="/forgot-password" variant="body2">
+          Забыли пароль?
+        </Link>
+      </Box>
+
       <Button type="submit" variant="contained" sx={{ mt: 2 }} fullWidth>
         Войти
       </Button>

@@ -1,7 +1,7 @@
 # backend/core/admin.py
 
 from django.contrib import admin
-from .models import Profile, Post, Repost, Comment, Favorite
+from .models import Profile, Post, Repost, Comment, Favorite, PasswordResetToken
 
 
 @admin.register(Profile)
@@ -36,3 +36,10 @@ class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('user', 'post', 'created_at')
     search_fields = ('user__username',)
     list_filter = ('created_at',)
+
+
+@admin.register(PasswordResetToken)
+class PasswordResetTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'token', 'created_at', 'expires_at')
+    search_fields = ('user__username', 'token')
+    list_filter = ('created_at', 'expires_at')

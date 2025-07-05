@@ -1,14 +1,30 @@
-#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\serializers.py
+# backend/core/serializers.py
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.core.mail import send_mail
+from django.conf import settings
 from .models import Profile, Post, Repost, Comment
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = Profile
         fields = ('id', 'avatar', 'bio', 'phone')
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            if request is not None:
+                return request.build_absolute_uri(obj.avatar.url)
+            else:
+                return obj.avatar.url
+        return None
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
@@ -130,3 +146,57 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         Profile.objects.create(user=user)
         return user
+
+
+# 🔐 Восстановление пароля
+
+class SendPasswordResetEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Пользователь с таким email не найден.")
+        return value
+
+    def save(self, request=None):
+        email = self.validated_data['email']
+        user = User.objects.get(email=email)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        reset_url = f"http://localhost:3000/reset-password?uid={uid}&token={token}"
+        print(f"[DEBUG] Ссылка для сброса пароля: {reset_url}")
+
+        message = f"Для сброса пароля перейдите по ссылке: {reset_url}"
+        send_mail(
+            'Восстановление пароля',
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=6)
+
+    def validate(self, data):
+        try:
+            uid = force_str(urlsafe_base64_decode(data['uid']))
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError, TypeError):
+            raise serializers.ValidationError("Неверный UID.")
+
+        if not default_token_generator.check_token(user, data['token']):
+            raise serializers.ValidationError("Недействительный или просроченный токен.")
+
+        data['user'] = user
+        return data
+
+    def save(self):
+        user = self.validated_data['user']
+        password = self.validated_data['new_password']
+        user.set_password(password)
+        user.save()

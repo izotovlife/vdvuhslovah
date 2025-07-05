@@ -1,4 +1,4 @@
-#backend/core/views.py
+# backend/core/views.py
 
 from rest_framework import generics, permissions, status, mixins
 from rest_framework.views import APIView
@@ -9,28 +9,37 @@ from django.contrib.auth.models import User
 from .models import Profile, Post, Repost, Comment
 from .serializers import (
     ProfileSerializer, ProfileUpdateSerializer, PostSerializer,
-    CommentSerializer, RepostSerializer, UserSerializer, RegisterSerializer
+    CommentSerializer, RepostSerializer, UserSerializer, RegisterSerializer,
+    SendPasswordResetEmailSerializer, ResetPasswordSerializer
 )
+
 
 class RegisterAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
 
-class ProfileDetailAPIView(
-    mixins.UpdateModelMixin,
-    generics.GenericAPIView
-):
+
+class ProfileDetailAPIView(mixins.UpdateModelMixin, generics.GenericAPIView):
     queryset = Profile.objects.select_related("user")
     permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
+        if self.request.method in ["PUT", "PATCH"]:
             return ProfileUpdateSerializer
         return ProfileSerializer
 
     def get_object(self):
         return Profile.objects.get(user=self.request.user)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs.setdefault('context', self.get_serializer_context())
+        return super().get_serializer(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_object())
@@ -42,13 +51,15 @@ class ProfileDetailAPIView(
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
+
 class PostListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Post.objects.all().order_by('-created_at')
+    queryset = Post.objects.all().order_by("-created_at")
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
 
 class PostCommentListAPIView(generics.ListAPIView):
     serializer_class = CommentSerializer
@@ -57,6 +68,7 @@ class PostCommentListAPIView(generics.ListAPIView):
     def get_queryset(self):
         post_id = self.kwargs["pk"]
         return Comment.objects.filter(post_id=post_id).order_by("-created_at")
+
 
 class PostCommentCreateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -69,14 +81,16 @@ class PostCommentCreateAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class PostRepostAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         post = get_object_or_404(Post, id=pk)
-        repost = Repost.objects.create(user=request.user, original_post=post)
+        repost, created = Repost.objects.get_or_create(user=request.user, original_post=post)
         serializer = RepostSerializer(repost)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
 
 class PostLikeAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -90,7 +104,8 @@ class PostLikeAPIView(APIView):
         else:
             post.likes.add(user)
             liked = True
-        return Response({'liked': liked, 'like_count': post.likes.count()})
+        return Response({"liked": liked, "like_count": post.likes.count()})
+
 
 class PopularPostsAPIView(generics.ListAPIView):
     serializer_class = PostSerializer
@@ -98,9 +113,11 @@ class PopularPostsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return Post.objects.annotate(
-            num_likes=Count('likes'),
-            num_comments=Count('comments')
-        ).order_by('-num_likes', '-num_comments')[:10]
+            num_likes=Count("likes"),
+            num_comments=Count("comments"),
+            num_reposts=Count("reposts")
+        ).order_by("-num_likes", "-num_comments", "-num_reposts")[:10]
+
 
 class UserPostsAPIView(generics.ListAPIView):
     serializer_class = PostSerializer
@@ -108,7 +125,8 @@ class UserPostsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         username = self.kwargs.get("username")
-        return Post.objects.filter(author__username=username).order_by('-created_at')
+        return Post.objects.filter(author__username=username).order_by("-created_at")
+
 
 class UserRepostsAPIView(generics.ListAPIView):
     serializer_class = RepostSerializer
@@ -116,7 +134,8 @@ class UserRepostsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         username = self.kwargs.get("username")
-        return Repost.objects.filter(user__username=username).order_by('-created_at')
+        return Repost.objects.filter(user__username=username).order_by("-created_at")
+
 
 class UserCommentsAPIView(generics.ListAPIView):
     serializer_class = CommentSerializer
@@ -124,7 +143,8 @@ class UserCommentsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         username = self.kwargs.get("username")
-        return Comment.objects.filter(user__username=username).order_by('-created_at')
+        return Comment.objects.filter(user__username=username).order_by("-created_at")
+
 
 class ChangePasswordAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -148,9 +168,34 @@ class ChangePasswordAPIView(APIView):
         user.save()
         return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
 
+
 class CurrentUserAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+# Восстановление пароля
+
+class SendPasswordResetEmailAPIView(generics.GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = SendPasswordResetEmailSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(request=request)
+        return Response({"detail": "Письмо с инструкциями отправлено, проверьте email"}, status=status.HTTP_200_OK)
+
+
+class ResetPasswordAPIView(generics.GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
