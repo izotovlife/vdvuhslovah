@@ -61,22 +61,20 @@ class UserSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    post_id = serializers.IntegerField(write_only=True)
     post_content = serializers.CharField(source='post.content', read_only=True)
     post_author = serializers.CharField(source='post.author.username', read_only=True)
 
     class Meta:
         model = Comment
         fields = (
-            'id', 'user', 'post_id',
+            'id', 'user',
             'post_content', 'post_author',
             'content', 'created_at'
         )
         read_only_fields = ('id', 'user', 'created_at')
 
     def create(self, validated_data):
-        post_id = validated_data.pop('post_id')
-        return Comment.objects.create(post_id=post_id, **validated_data)
+        return Comment.objects.create(**validated_data)
 
 
 class RepostSerializer(serializers.ModelSerializer):

@@ -11,7 +11,6 @@ import { AuthProvider, AuthContext } from './context/AuthContext';
 import ProfileEdit from './components/ProfileEdit';
 import UserPage from './components/UserPage';
 
-// 🔐 Новые страницы восстановления пароля
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 
@@ -38,7 +37,6 @@ function App() {
           <Route path="/change-password" element={<PrivateRoute><ChangePasswordPage /></PrivateRoute>} />
           <Route path="/user/:username" element={<UserPageWrapper />} />
 
-          {/* 🔐 Добавленные маршруты для восстановления пароля */}
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 

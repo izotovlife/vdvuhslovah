@@ -1,3 +1,5 @@
+//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\context\AuthContext.js
+
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
@@ -58,7 +60,6 @@ export function AuthProvider({ children }) {
     await fetchUser(token);
   };
 
-  // Функция обновления части данных пользователя, например аватара
   const updateUser = (newUserData) => {
     setUser((prevUser) => ({
       ...prevUser,

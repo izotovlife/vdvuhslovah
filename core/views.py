@@ -53,33 +53,31 @@ class ProfileDetailAPIView(mixins.UpdateModelMixin, generics.GenericAPIView):
 
 
 class PostListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Post.objects.all().order_by("-created_at")
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        return Post.objects.annotate(
+            like_count=Count('likes'),
+            comment_count=Count('comments'),
+            repost_count=Count('reposts')
+        ).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
 
-class PostCommentListAPIView(generics.ListAPIView):
+class PostCommentListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        post_id = self.kwargs["pk"]
-        return Comment.objects.filter(post_id=post_id).order_by("-created_at")
+        post_id = self.kwargs['pk']
+        return Comment.objects.filter(post_id=post_id).order_by('-created_at')
 
-
-class PostCommentCreateAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, pk):
-        post = get_object_or_404(Post, id=pk)
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user, post=post)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        post = get_object_or_404(Post, id=self.kwargs['pk'])
+        serializer.save(user=self.request.user, post=post)
 
 
 class PostRepostAPIView(APIView):
@@ -113,10 +111,10 @@ class PopularPostsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return Post.objects.annotate(
-            num_likes=Count("likes"),
-            num_comments=Count("comments"),
-            num_reposts=Count("reposts")
-        ).order_by("-num_likes", "-num_comments", "-num_reposts")[:10]
+            like_count=Count("likes"),
+            comment_count=Count("comments"),
+            repost_count=Count("reposts")
+        ).order_by("-like_count", "-comment_count", "-repost_count")[:10]
 
 
 class UserPostsAPIView(generics.ListAPIView):
@@ -125,7 +123,11 @@ class UserPostsAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         username = self.kwargs.get("username")
-        return Post.objects.filter(author__username=username).order_by("-created_at")
+        return Post.objects.annotate(
+            like_count=Count('likes'),
+            comment_count=Count('comments'),
+            repost_count=Count('reposts')
+        ).filter(author__username=username).order_by("-created_at")
 
 
 class UserRepostsAPIView(generics.ListAPIView):

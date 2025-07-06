@@ -3,7 +3,7 @@
 from django.urls import path
 from .views import (
     RegisterAPIView, ProfileDetailAPIView, PostListCreateAPIView,
-    PostCommentListAPIView, PostCommentCreateAPIView, PostRepostAPIView,
+    PostCommentListCreateAPIView, PostRepostAPIView,
     PostLikeAPIView, PopularPostsAPIView, UserPostsAPIView, UserRepostsAPIView,
     UserCommentsAPIView, ChangePasswordAPIView, CurrentUserAPIView,
     SendPasswordResetEmailAPIView, ResetPasswordAPIView,
@@ -14,8 +14,7 @@ urlpatterns = [
     path('profile/', ProfileDetailAPIView.as_view(), name='profile-detail'),
 
     path('posts/', PostListCreateAPIView.as_view(), name='posts'),
-    path('posts/<int:pk>/comments/', PostCommentListAPIView.as_view(), name='post-comments'),
-    path('posts/<int:pk>/comments/create/', PostCommentCreateAPIView.as_view(), name='post-comment-create'),
+    path('posts/<int:pk>/comments/', PostCommentListCreateAPIView.as_view(), name='post-comments'),
     path('posts/<int:pk>/repost/', PostRepostAPIView.as_view(), name='post-repost'),
     path('posts/<int:pk>/like/', PostLikeAPIView.as_view(), name='post-like'),
 

@@ -9,11 +9,14 @@ import {
   TextField,
   Button,
   IconButton,
+  Tooltip,
 } from '@mui/material';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import RepeatIcon from '@mui/icons-material/Repeat';
+import CommentIcon from '@mui/icons-material/Comment';
+import SendIcon from '@mui/icons-material/Send';
 import { AuthContext } from '../context/AuthContext';
-import api from '../api';  // <- здесь импорт по умолчанию без фигурных скобок
+import api from '../api';
 
 const HomePage = () => {
   const { user, accessToken } = useContext(AuthContext);
@@ -23,6 +26,9 @@ const HomePage = () => {
   const [newPostText, setNewPostText] = useState('');
   const [newCommentTextByPostId, setNewCommentTextByPostId] = useState({});
   const [commentsByPostId, setCommentsByPostId] = useState({});
+  const [showCommentsFor, setShowCommentsFor] = useState({});
+  const [loadingComments, setLoadingComments] = useState({});
+  const [showCommentInputFor, setShowCommentInputFor] = useState({}); // для отображения формы ввода комментария
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -103,11 +109,27 @@ const HomePage = () => {
   };
 
   const fetchComments = async (postId) => {
+    setLoadingComments((prev) => ({ ...prev, [postId]: true }));
     try {
       const response = await api.get(`/posts/${postId}/comments/`);
       setCommentsByPostId((prev) => ({ ...prev, [postId]: response.data }));
+      setShowCommentsFor((prev) => ({ ...prev, [postId]: true }));
     } catch (error) {
       console.error('Ошибка загрузки комментариев:', error);
+    } finally {
+      setLoadingComments((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const toggleComments = (postId) => {
+    if (showCommentsFor[postId]) {
+      setShowCommentsFor((prev) => ({ ...prev, [postId]: false }));
+    } else {
+      if (!commentsByPostId[postId]) {
+        fetchComments(postId);
+      } else {
+        setShowCommentsFor((prev) => ({ ...prev, [postId]: true }));
+      }
     }
   };
 
@@ -123,15 +145,28 @@ const HomePage = () => {
     try {
       await api.post(
         `/posts/${postId}/comments/`,
-        { text }, // должно совпадать с бэкендом
+        { content: text },
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      fetchComments(postId);
+      await fetchComments(postId);
       setNewCommentTextByPostId((prev) => ({ ...prev, [postId]: '' }));
+      // Можно закрыть форму ввода комментария после отправки, если хотите
+      setShowCommentInputFor((prev) => ({ ...prev, [postId]: false }));
     } catch (error) {
       console.error('Ошибка добавления комментария:', error);
       alert('Ошибка при добавлении комментария');
     }
+  };
+
+  const toggleCommentInput = (postId) => {
+    if (!user) {
+      alert('Войдите в аккаунт, чтобы добавлять комментарии');
+      return;
+    }
+    setShowCommentInputFor((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
   };
 
   if (loading)
@@ -165,71 +200,116 @@ const HomePage = () => {
         )}
 
         {posts.map((post) => (
-          <Paper key={post.id} sx={{ p: 2, mb: 3 }}>
-            <Typography variant="subtitle1" fontWeight="bold">
-              {post.author_username}:
+          <Paper key={post.id} sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+              {post.author_username}
             </Typography>
-            <Typography sx={{ whiteSpace: 'pre-wrap' }}>{post.content}</Typography>
-            <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
-              <IconButton
-                size="small"
-                onClick={() => handleLike(post.id)}
-                color={post.liked_by_user ? 'primary' : 'default'}
-              >
-                <ThumbUpIcon />
-              </IconButton>
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
+              {post.content}
+            </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Tooltip title="Лайк">
+                <IconButton
+                  size="small"
+                  onClick={() => handleLike(post.id)}
+                  color={post.liked_by_user ? 'primary' : 'default'}
+                >
+                  <ThumbUpIcon />
+                </IconButton>
+              </Tooltip>
               <Typography variant="body2">{post.like_count}</Typography>
 
-              <IconButton size="small" onClick={() => handleRepost(post.id)}>
-                <RepeatIcon />
-              </IconButton>
+              <Tooltip title="Репост">
+                <IconButton size="small" onClick={() => handleRepost(post.id)}>
+                  <RepeatIcon />
+                </IconButton>
+              </Tooltip>
               <Typography variant="body2">{post.repost_count || 0}</Typography>
+
+              <Tooltip title="Добавить комментарий">
+                <IconButton
+                  size="small"
+                  onClick={() => toggleCommentInput(post.id)}
+                  color={showCommentInputFor[post.id] ? 'primary' : 'default'}
+                >
+                  <CommentIcon />
+                </IconButton>
+              </Tooltip>
 
               <Typography variant="body2" sx={{ ml: 'auto' }}>
                 Комментариев: {post.comment_count}
               </Typography>
             </Box>
 
-            <Box mt={2}>
-              <Button size="small" onClick={() => fetchComments(post.id)}>
-                Показать комментарии
-              </Button>
-              {(commentsByPostId[post.id] || []).map((comment) => (
-                <Box
-                  key={comment.id}
-                  sx={{ pl: 2, mt: 1, borderLeft: '2px solid #ccc' }}
+            {/* Форма для быстрого добавления комментария рядом с постом */}
+            {showCommentInputFor[post.id] && (
+              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Напишите комментарий..."
+                  value={newCommentTextByPostId[post.id] || ''}
+                  onChange={(e) =>
+                    setNewCommentTextByPostId((prev) => ({
+                      ...prev,
+                      [post.id]: e.target.value,
+                    }))
+                  }
+                  fullWidth
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  endIcon={<SendIcon />}
+                  onClick={() => handleAddComment(post.id)}
                 >
-                  <Typography variant="body2" fontWeight="bold">
-                    {comment.author_username}:
-                  </Typography>
-                  <Typography variant="body2">{comment.text}</Typography>
-                </Box>
-              ))}
+                  Отправить
+                </Button>
+              </Box>
+            )}
 
-              {user && (
-                <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                  <TextField
-                    size="small"
-                    placeholder="Добавить комментарий"
-                    value={newCommentTextByPostId[post.id] || ''}
-                    onChange={(e) =>
-                      setNewCommentTextByPostId((prev) => ({
-                        ...prev,
-                        [post.id]: e.target.value,
-                      }))
-                    }
-                    fullWidth
-                  />
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => handleAddComment(post.id)}
-                  >
-                    Отправить
-                  </Button>
-                </Box>
-              )}
-            </Box>
+            {/* Кнопка и список комментариев */}
+            {post.comment_count > 0 && (
+              <Box mt={2}>
+                <Button
+                  size="small"
+                  onClick={() => toggleComments(post.id)}
+                  disabled={loadingComments[post.id]}
+                  sx={{ mb: 1 }}
+                >
+                  {loadingComments[post.id]
+                    ? 'Загрузка...'
+                    : showCommentsFor[post.id]
+                    ? 'Скрыть комментарии'
+                    : 'Показать комментарии'}
+                </Button>
+
+                {showCommentsFor[post.id] && !loadingComments[post.id] && (
+                  <>
+                    {(commentsByPostId[post.id] || []).map((comment) => (
+                      <Paper
+                        key={comment.id}
+                        variant="outlined"
+                        sx={{
+                          p: 1,
+                          mb: 1,
+                          borderRadius: 1,
+                          backgroundColor: '#f9f9f9',
+                          ml: 2,
+                        }}
+                      >
+                        <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
+                          {comment.user.username}
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {comment.content}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </>
+                )}
+              </Box>
+            )}
           </Paper>
         ))}
       </Box>
@@ -242,11 +322,11 @@ const HomePage = () => {
           <Typography>Пока нет популярных публикаций.</Typography>
         ) : (
           popularPosts.map((post) => (
-            <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold">
-                {post.author_username}:
+            <Paper key={post.id} sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 1 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                {post.author_username}
               </Typography>
-              <Typography sx={{ whiteSpace: 'pre-wrap' }}>{post.content}</Typography>
+              <Typography sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>{post.content}</Typography>
               <Typography variant="caption" color="text.secondary">
                 Лайков: {post.like_count} | Репостов: {post.repost_count || 0} | Комментариев:{' '}
                 {post.comment_count}
@@ -260,3 +340,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+
