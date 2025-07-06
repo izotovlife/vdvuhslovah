@@ -94,19 +94,27 @@ class RepostSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
+    author_username = serializers.CharField(source='author.username', read_only=True)
     like_count = serializers.IntegerField(read_only=True)
     comment_count = serializers.IntegerField(read_only=True)
     repost_count = serializers.IntegerField(read_only=True)
+    liked_by_user = serializers.SerializerMethodField()
     comments = CommentSerializer(many=True, read_only=True)
     reposts = RepostSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
         fields = (
-            'id', 'author', 'content', 'created_at',
-            'like_count', 'comment_count', 'repost_count',
+            'id', 'author', 'author_username', 'content', 'created_at',
+            'like_count', 'comment_count', 'repost_count', 'liked_by_user',
             'comments', 'reposts'
         )
+
+    def get_liked_by_user(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
 
 
 class RegisterSerializer(serializers.ModelSerializer):

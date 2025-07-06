@@ -66,6 +66,11 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request  # Важно, чтобы вычислялось liked_by_user
+        return context
+
 
 class PostCommentListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
@@ -116,6 +121,11 @@ class PopularPostsAPIView(generics.ListAPIView):
             repost_count=Count("reposts")
         ).order_by("-like_count", "-comment_count", "-repost_count")[:10]
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
 
 class UserPostsAPIView(generics.ListAPIView):
     serializer_class = PostSerializer
@@ -128,6 +138,11 @@ class UserPostsAPIView(generics.ListAPIView):
             comment_count=Count('comments'),
             repost_count=Count('reposts')
         ).filter(author__username=username).order_by("-created_at")
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class UserRepostsAPIView(generics.ListAPIView):

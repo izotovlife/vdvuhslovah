@@ -10,13 +10,65 @@ import {
   Button,
   IconButton,
   Tooltip,
+  Avatar,
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import CommentIcon from '@mui/icons-material/Comment';
 import SendIcon from '@mui/icons-material/Send';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
+
+// Стили
+const PostPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.spacing(2),
+  boxShadow: theme.shadows[4],
+  backgroundColor: theme.palette.background.paper,
+  transition: 'box-shadow 0.3s ease',
+  '&:hover': {
+    boxShadow: theme.shadows[8],
+  },
+}));
+
+const AuthorInfo = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: theme.spacing(1),
+  gap: theme.spacing(1),
+}));
+
+const PostContent = styled(Typography)(({ theme }) => ({
+  whiteSpace: 'pre-wrap',
+  marginBottom: theme.spacing(2),
+  fontWeight: 500,
+  color: theme.palette.text.primary,
+  fontSize: '1.15rem',
+  lineHeight: 1.5,
+}));
+
+const ActionsRow = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(2),
+  color: theme.palette.text.secondary,
+}));
+
+const CommentsSection = styled('div')(({ theme }) => ({
+  marginTop: theme.spacing(2),
+}));
+
+const CommentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(1),
+  backgroundColor: theme.palette.action.hover,
+  marginLeft: theme.spacing(3),
+}));
 
 const HomePage = () => {
   const { user, accessToken } = useContext(AuthContext);
@@ -28,7 +80,7 @@ const HomePage = () => {
   const [commentsByPostId, setCommentsByPostId] = useState({});
   const [showCommentsFor, setShowCommentsFor] = useState({});
   const [loadingComments, setLoadingComments] = useState({});
-  const [showCommentInputFor, setShowCommentInputFor] = useState({}); // для отображения формы ввода комментария
+  const [showCommentInputFor, setShowCommentInputFor] = useState({});
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -150,11 +202,9 @@ const HomePage = () => {
       );
       await fetchComments(postId);
       setNewCommentTextByPostId((prev) => ({ ...prev, [postId]: '' }));
-      // Можно закрыть форму ввода комментария после отправки, если хотите
       setShowCommentInputFor((prev) => ({ ...prev, [postId]: false }));
     } catch (error) {
       console.error('Ошибка добавления комментария:', error);
-      alert('Ошибка при добавлении комментария');
     }
   };
 
@@ -169,12 +219,13 @@ const HomePage = () => {
     }));
   };
 
-  if (loading)
+  if (loading) {
     return (
       <Container sx={{ mt: 4 }}>
         <Typography>Загрузка...</Typography>
       </Container>
     );
+  }
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, display: 'flex', gap: 3 }}>
@@ -200,15 +251,31 @@ const HomePage = () => {
         )}
 
         {posts.map((post) => (
-          <Paper key={post.id} sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: 3 }}>
-            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-              {post.author_username}
-            </Typography>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
-              {post.content}
-            </Typography>
+          <PostPaper key={post.id} elevation={3}>
+            <AuthorInfo>
+              <Avatar
+                src={post.author?.profile?.avatar || ''}
+                alt={post.author_username}
+                sx={{ width: 36, height: 36 }}
+              />
+              <Box>
+                <Typography variant="subtitle2" fontWeight="bold">
+                  {post.author_username}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {post.created_at
+                    ? formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                        locale: ru,
+                      })
+                    : ''}
+                </Typography>
+              </Box>
+            </AuthorInfo>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <PostContent variant="body1">{post.content}</PostContent>
+
+            <ActionsRow>
               <Tooltip title="Лайк">
                 <IconButton
                   size="small"
@@ -240,9 +307,8 @@ const HomePage = () => {
               <Typography variant="body2" sx={{ ml: 'auto' }}>
                 Комментариев: {post.comment_count}
               </Typography>
-            </Box>
+            </ActionsRow>
 
-            {/* Форма для быстрого добавления комментария рядом с постом */}
             {showCommentInputFor[post.id] && (
               <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                 <TextField
@@ -268,9 +334,8 @@ const HomePage = () => {
               </Box>
             )}
 
-            {/* Кнопка и список комментариев */}
             {post.comment_count > 0 && (
-              <Box mt={2}>
+              <CommentsSection>
                 <Button
                   size="small"
                   onClick={() => toggleComments(post.id)}
@@ -287,30 +352,20 @@ const HomePage = () => {
                 {showCommentsFor[post.id] && !loadingComments[post.id] && (
                   <>
                     {(commentsByPostId[post.id] || []).map((comment) => (
-                      <Paper
-                        key={comment.id}
-                        variant="outlined"
-                        sx={{
-                          p: 1,
-                          mb: 1,
-                          borderRadius: 1,
-                          backgroundColor: '#f9f9f9',
-                          ml: 2,
-                        }}
-                      >
+                      <CommentPaper key={comment.id}>
                         <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
                           {comment.user.username}
                         </Typography>
                         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                           {comment.content}
                         </Typography>
-                      </Paper>
+                      </CommentPaper>
                     ))}
                   </>
                 )}
-              </Box>
+              </CommentsSection>
             )}
-          </Paper>
+          </PostPaper>
         ))}
       </Box>
 
@@ -322,16 +377,32 @@ const HomePage = () => {
           <Typography>Пока нет популярных публикаций.</Typography>
         ) : (
           popularPosts.map((post) => (
-            <Paper key={post.id} sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+            <PostPaper key={post.id} elevation={2} sx={{ p: 2 }}>
+              <Typography variant="subtitle2" fontWeight="bold">
                 {post.author_username}
               </Typography>
-              <Typography sx={{ whiteSpace: 'pre-wrap', mb: 1 }}>{post.content}</Typography>
               <Typography variant="caption" color="text.secondary">
-                Лайков: {post.like_count} | Репостов: {post.repost_count || 0} | Комментариев:{' '}
-                {post.comment_count}
+                {post.created_at
+                  ? formatDistanceToNow(new Date(post.created_at), {
+                      addSuffix: true,
+                      locale: ru,
+                    })
+                  : ''}
               </Typography>
-            </Paper>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {post.content.length > 120
+                  ? post.content.slice(0, 120) + '...'
+                  : post.content}
+              </Typography>
+              <ActionsRow sx={{ mt: 1 }}>
+                <ThumbUpIcon sx={{ fontSize: 18 }} />
+                <Typography variant="caption">{post.like_count}</Typography>
+                <RepeatIcon sx={{ fontSize: 18, ml: 1 }} />
+                <Typography variant="caption">{post.repost_count || 0}</Typography>
+                <CommentIcon sx={{ fontSize: 18, ml: 1 }} />
+                <Typography variant="caption">{post.comment_count || 0}</Typography>
+              </ActionsRow>
+            </PostPaper>
           ))
         )}
       </Box>
@@ -340,4 +411,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-
