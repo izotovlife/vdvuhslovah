@@ -1,4 +1,4 @@
-// frontend/src/pages/HomePage.js
+//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\HomePage.js
 
 import React, { useEffect, useState, useContext } from 'react';
 import {

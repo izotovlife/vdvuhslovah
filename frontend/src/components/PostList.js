@@ -1,5 +1,7 @@
 // frontend/src/components/PostList.js
 
+// frontend/src/components/PostList.js
+
 import React, { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import CommentForm from './CommentForm';
@@ -12,12 +14,33 @@ export default function PostList() {
     fetchPosts();
   }, [axiosInstance]);
 
+  // Функция для получения постов
   const fetchPosts = async () => {
     try {
       const res = await axiosInstance.get('/posts/');
       setPosts(res.data);
     } catch (error) {
       console.error('Ошибка загрузки постов:', error);
+    }
+  };
+
+  // Обработчик лайка
+  const handleLike = async (postId) => {
+    try {
+      const res = await axiosInstance.post(`/posts/${postId}/like/`);
+      const liked = res.data.liked;  // Получаем, лайкнут ли пост
+      const updatedPosts = posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            like_count: liked ? post.like_count + 1 : post.like_count - 1,
+          };
+        }
+        return post;
+      });
+      setPosts(updatedPosts);  // Обновляем стейт с учётом нового лайка
+    } catch (error) {
+      console.error('Ошибка при обработке лайка:', error);
     }
   };
 
@@ -45,6 +68,13 @@ export default function PostList() {
           <small>
             ❤️ {post.like_count} | 💬 {post.comment_count} | 🔁 {post.repost_count}
           </small>
+
+          {/* Обработчик лайка */}
+          <div style={{ marginTop: 8 }}>
+            <button onClick={() => handleLike(post.id)}>
+              {post.liked_by_user ? 'Убрать лайк' : 'Поставить лайк'}
+            </button>
+          </div>
 
           <div style={{ marginTop: 8 }}>
             <h4>Комментарии:</h4>

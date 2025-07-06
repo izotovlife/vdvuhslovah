@@ -1,5 +1,3 @@
-# backend/settings.py
-
 import os
 from decouple import config
 from pathlib import Path
@@ -26,6 +24,9 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'rest_framework',
     'corsheaders',
+
+    # Для поддержки refresh токенов и их блокировки
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 # Middleware
@@ -106,6 +107,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,      # Ротация refresh токенов
+    'BLACKLIST_AFTER_ROTATION': True,   # Блокировка старых refresh токенов
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 

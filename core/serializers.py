@@ -1,3 +1,5 @@
+#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\serializers.py
+
 # backend/core/serializers.py
 
 from rest_framework import serializers
@@ -10,12 +12,41 @@ from django.conf import settings
 from .models import Profile, Post, Repost, Comment
 
 
+# Облегчённый сериализатор пользователя без профиля
+class SimpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username')
+
+
+# Облегчённый сериализатор поста с минимальными вложениями
+class SimplePostSerializer(serializers.ModelSerializer):
+    author = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = Post
+        fields = ('id', 'author', 'content', 'created_at')
+
+
+# Облегчённый сериализатор репоста без вложенного полного поста
+class SimpleRepostSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = Repost
+        fields = ('id', 'user', 'created_at')
+
+
 class ProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
+    name = serializers.CharField(source='user.get_full_name', read_only=True)  # Полное имя пользователя
+    posts = serializers.SerializerMethodField()
+    reposts = serializers.SerializerMethodField()
+    liked_posts = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
-        fields = ('id', 'avatar', 'bio', 'phone')
+        fields = ('id', 'avatar', 'bio', 'phone', 'name', 'posts', 'reposts', 'liked_posts')
 
     def get_avatar(self, obj):
         request = self.context.get('request')
@@ -26,20 +57,45 @@ class ProfileSerializer(serializers.ModelSerializer):
                 return obj.avatar.url
         return None
 
+    def get_posts(self, obj):
+        posts = Post.objects.filter(author=obj.user).order_by('-created_at')
+        serializer = SimplePostSerializer(posts, many=True, context=self.context)
+        return serializer.data
+
+    def get_reposts(self, obj):
+        reposts = Repost.objects.filter(user=obj.user).order_by('-created_at')
+        serializer = SimpleRepostSerializer(reposts, many=True, context=self.context)
+        return serializer.data
+
+    def get_liked_posts(self, obj):
+        liked_posts = Post.objects.filter(likes=obj.user).order_by('-created_at')
+        serializer = SimplePostSerializer(liked_posts, many=True, context=self.context)
+        return serializer.data
+
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', allow_blank=True, required=False)
     last_name = serializers.CharField(source='user.last_name', allow_blank=True, required=False)
     email = serializers.EmailField(source='user.email', required=False)
+    password = serializers.CharField(write_only=True, required=False)
+    password2 = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Profile
-        fields = ('avatar', 'bio', 'phone', 'first_name', 'last_name', 'email')
+        fields = ('avatar', 'bio', 'phone', 'first_name', 'last_name', 'email', 'password', 'password2')
+
+    def validate(self, data):
+        if 'password' in data and 'password2' in data:
+            if data['password'] != data['password2']:
+                raise serializers.ValidationError({"password2": "Пароли не совпадают"})
+        return data
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop('user', {})
         user = instance.user
 
+        if 'password' in validated_data:
+            user.set_password(validated_data['password'])
         for attr, value in user_data.items():
             setattr(user, attr, value)
         user.save()
@@ -53,10 +109,14 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
+    name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'profile')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'profile', 'name')
+
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -77,21 +137,6 @@ class CommentSerializer(serializers.ModelSerializer):
         return Comment.objects.create(**validated_data)
 
 
-class RepostSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    original_post_content = serializers.CharField(source='original_post.content', read_only=True)
-    original_post_author = serializers.CharField(source='original_post.author.username', read_only=True)
-    original_post_id = serializers.IntegerField(source='original_post.id', read_only=True)
-
-    class Meta:
-        model = Repost
-        fields = (
-            'id', 'user', 'created_at',
-            'original_post', 'original_post_id',
-            'original_post_content', 'original_post_author'
-        )
-
-
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     author_username = serializers.CharField(source='author.username', read_only=True)
@@ -100,7 +145,7 @@ class PostSerializer(serializers.ModelSerializer):
     repost_count = serializers.IntegerField(read_only=True)
     liked_by_user = serializers.SerializerMethodField()
     comments = CommentSerializer(many=True, read_only=True)
-    reposts = RepostSerializer(many=True, read_only=True)
+    reposts = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -115,6 +160,18 @@ class PostSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.likes.filter(id=request.user.id).exists()
         return False
+
+    def get_reposts(self, obj):
+        return obj.reposts.values('id')
+
+
+class RepostSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    original_post = PostSerializer(read_only=True)
+
+    class Meta:
+        model = Repost
+        fields = ('id', 'user', 'created_at', 'original_post')
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -153,8 +210,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         Profile.objects.create(user=user)
         return user
 
-
-# 🔐 Восстановление пароля
 
 class SendPasswordResetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()

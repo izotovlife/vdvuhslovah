@@ -68,7 +68,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['request'] = self.request  # Важно, чтобы вычислялось liked_by_user
+        context['request'] = self.request
         return context
 
 
@@ -216,3 +216,29 @@ class ResetPasswordAPIView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
+
+
+# Новые API для лайкнутых постов и репостов пользователя
+
+class LikedPostsAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        liked_posts = Post.objects.filter(likes=user).order_by('-created_at').annotate(
+            like_count=Count('likes'),
+            comment_count=Count('comments'),
+            repost_count=Count('reposts')
+        )
+        serializer = PostSerializer(liked_posts, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+class UserRepostsListAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        reposts = Repost.objects.filter(user=user).order_by('-created_at')
+        serializer = RepostSerializer(reposts, many=True, context={'request': request})
+        return Response(serializer.data)

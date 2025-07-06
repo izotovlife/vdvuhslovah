@@ -27,12 +27,21 @@ export default function PostCard({
   renderCommentForm,
   renderComments,
 }) {
+  // Печать лога для отладки
+  console.log(post);
+
+  // Безопасная обработка данных для аватара и имени пользователя
+  const avatarUrl = post?.author?.profile?.avatar
+    ? `http://localhost:8000${post.author.profile.avatar}`
+    : '/default-avatar.png'; // Заглушка, если аватар отсутствует
+  const username = post?.author?.username || 'Неизвестный пользователь'; // Защита от отсутствия имени
+
   return (
     <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: 4 }}>
       <Box display="flex" alignItems="center" gap={2} mb={1}>
-        <Avatar src={post.author.profile?.avatar} alt={post.author.username} />
+        <Avatar src={avatarUrl} alt={username} />
         <Box>
-          <Typography fontWeight="bold">{post.author.username}</Typography>
+          <Typography fontWeight="bold">{username}</Typography>
           <Typography variant="caption" color="text.secondary">
             {new Date(post.created_at).toLocaleString()}
           </Typography>
