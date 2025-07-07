@@ -8,6 +8,7 @@ from .views import (
     UserCommentsAPIView, ChangePasswordAPIView, CurrentUserAPIView,
     SendPasswordResetEmailAPIView, ResetPasswordAPIView,
     LikedPostsAPIView, UserRepostsListAPIView,
+    PublicProfileView
 )
 
 urlpatterns = [
@@ -31,6 +32,9 @@ urlpatterns = [
     path('users/<str:username>/posts/', UserPostsAPIView.as_view(), name='user-posts'),
     path('users/<str:username>/reposts/', UserRepostsAPIView.as_view(), name='user-reposts'),
     path('users/<str:username>/comments/', UserCommentsAPIView.as_view(), name='user-comments'),
+
+    # Общедоступный профиль пользователя
+    path('users/<str:username>/profile/', PublicProfileView.as_view(), name='public-profile'),
 
     # Смена пароля и получение текущего пользователя
     path('change-password/', ChangePasswordAPIView.as_view(), name='change-password'),

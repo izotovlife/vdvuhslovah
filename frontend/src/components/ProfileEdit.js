@@ -1,7 +1,9 @@
 // frontend/src/components/ProfileEdit.js
 
+// frontend/src/components/ProfileEdit.js
+
 import React, { useState, useEffect } from 'react';
-import axios from '../api';
+import api from '../api';
 import { Box, TextField, Button, Avatar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,7 +14,7 @@ export default function ProfileEdit() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get('/profile/')
+    api.get('/profile/')
       .then(res => {
         setBio(res.data.bio || '');
         setPhone(res.data.phone || '');
@@ -36,7 +38,7 @@ export default function ProfileEdit() {
     formData.append('phone', phone);
 
     try {
-      await axios.put('/profile/', formData, {
+      await api.put('/profile/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

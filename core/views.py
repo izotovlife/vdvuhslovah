@@ -30,16 +30,13 @@ class ProfileDetailAPIView(mixins.UpdateModelMixin, generics.GenericAPIView):
         return ProfileSerializer
 
     def get_object(self):
-        return Profile.objects.get(user=self.request.user)
+        profile, created = Profile.objects.get_or_create(user=self.request.user)
+        return profile
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
-
-    def get_serializer(self, *args, **kwargs):
-        kwargs.setdefault('context', self.get_serializer_context())
-        return super().get_serializer(*args, **kwargs)
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
     def get(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_object())
@@ -50,6 +47,18 @@ class ProfileDetailAPIView(mixins.UpdateModelMixin, generics.GenericAPIView):
 
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
+
+
+class PublicProfileView(generics.RetrieveAPIView):
+    serializer_class = ProfileSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'user__username'
+    queryset = Profile.objects.select_related('user')
+
+    def get_object(self):
+        username = self.kwargs.get('username')
+        profile = get_object_or_404(Profile, user__username=username)
+        return profile
 
 
 class PostListCreateAPIView(generics.ListCreateAPIView):
@@ -67,9 +76,9 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
         serializer.save(author=self.request.user)
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
 
 class PostCommentListCreateAPIView(generics.ListCreateAPIView):
@@ -77,8 +86,8 @@ class PostCommentListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        post_id = self.kwargs['pk']
-        return Comment.objects.filter(post_id=post_id).order_by('-created_at')
+        pid = self.kwargs['pk']
+        return Comment.objects.filter(post_id=pid).order_by('-created_at')
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs['pk'])
@@ -92,7 +101,8 @@ class PostRepostAPIView(APIView):
         post = get_object_or_404(Post, id=pk)
         repost, created = Repost.objects.get_or_create(user=request.user, original_post=post)
         serializer = RepostSerializer(repost)
-        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(serializer.data, status=status_code)
 
 
 class PostLikeAPIView(APIView):
@@ -122,9 +132,9 @@ class PopularPostsAPIView(generics.ListAPIView):
         ).order_by("-like_count", "-comment_count", "-repost_count")[:10]
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
 
 class UserPostsAPIView(generics.ListAPIView):
@@ -132,17 +142,17 @@ class UserPostsAPIView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        username = self.kwargs.get("username")
+        uname = self.kwargs.get("username")
         return Post.objects.annotate(
             like_count=Count('likes'),
             comment_count=Count('comments'),
             repost_count=Count('reposts')
-        ).filter(author__username=username).order_by("-created_at")
+        ).filter(author__username=uname).order_by("-created_at")
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
 
 class UserRepostsAPIView(generics.ListAPIView):
@@ -150,8 +160,8 @@ class UserRepostsAPIView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        username = self.kwargs.get("username")
-        return Repost.objects.filter(user__username=username).order_by("-created_at")
+        uname = self.kwargs.get("username")
+        return Repost.objects.filter(user__username=uname).order_by("-created_at")
 
 
 class UserCommentsAPIView(generics.ListAPIView):
@@ -159,8 +169,8 @@ class UserCommentsAPIView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        username = self.kwargs.get("username")
-        return Comment.objects.filter(user__username=username).order_by("-created_at")
+        uname = self.kwargs.get("username")
+        return Comment.objects.filter(user__username=uname).order_by("-created_at")
 
 
 class ChangePasswordAPIView(APIView):
@@ -168,22 +178,18 @@ class ChangePasswordAPIView(APIView):
 
     def post(self, request):
         user = request.user
-        old_password = request.data.get("old_password")
-        new_password1 = request.data.get("new_password1")
-        new_password2 = request.data.get("new_password2")
-
-        if not user.check_password(old_password):
+        old = request.data.get("old_password")
+        new1 = request.data.get("new_password1")
+        new2 = request.data.get("new_password2")
+        if not user.check_password(old):
             return Response({"old_password": "Неверный текущий пароль"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if new_password1 != new_password2:
+        if new1 != new2:
             return Response({"new_password2": "Пароли не совпадают"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not new_password1:
+        if not new1:
             return Response({"new_password1": "Новый пароль не может быть пустым"}, status=status.HTTP_400_BAD_REQUEST)
-
-        user.set_password(new_password1)
+        user.set_password(new1)
         user.save()
-        return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
+        return Response({"detail": "Пароль успешно изменён"})
 
 
 class CurrentUserAPIView(APIView):
@@ -194,17 +200,15 @@ class CurrentUserAPIView(APIView):
         return Response(serializer.data)
 
 
-# Восстановление пароля
-
 class SendPasswordResetEmailAPIView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = SendPasswordResetEmailSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(request=request)
-        return Response({"detail": "Письмо с инструкциями отправлено, проверьте email"}, status=status.HTTP_200_OK)
+        ser = self.get_serializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        ser.save(request=request)
+        return Response({"detail": "Письмо с инструкциями отправлено"}, status=status.HTTP_200_OK)
 
 
 class ResetPasswordAPIView(generics.GenericAPIView):
@@ -212,25 +216,23 @@ class ResetPasswordAPIView(generics.GenericAPIView):
     serializer_class = ResetPasswordSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        ser = self.get_serializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
         return Response({"detail": "Пароль успешно изменён"}, status=status.HTTP_200_OK)
 
-
-# Новые API для лайкнутых постов и репостов пользователя
 
 class LikedPostsAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        liked_posts = Post.objects.filter(likes=user).order_by('-created_at').annotate(
+        qs = Post.objects.filter(likes=user).order_by('-created_at').annotate(
             like_count=Count('likes'),
             comment_count=Count('comments'),
             repost_count=Count('reposts')
         )
-        serializer = PostSerializer(liked_posts, many=True, context={'request': request})
+        serializer = PostSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -239,6 +241,6 @@ class UserRepostsListAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        reposts = Repost.objects.filter(user=user).order_by('-created_at')
-        serializer = RepostSerializer(reposts, many=True, context={'request': request})
+        qs = Repost.objects.filter(user=user).order_by('-created_at')
+        serializer = RepostSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)

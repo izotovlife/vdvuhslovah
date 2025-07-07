@@ -1,116 +1,126 @@
-//vdvuhslovah\frontend\src\pages\UserPage.js
-
 // frontend/src/pages/UserPage.js
 
-import React, { useState, useEffect, useContext } from 'react';
-import api from '../api';
-import { Tabs, Tab, Box, Typography, CircularProgress } from '@mui/material';
-import PostCard from '../components/PostCard';
-import { AuthContext } from '../context/AuthContext';
-
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
-    </div>
-  );
-}
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  Container,
+  Box,
+  Typography,
+  Avatar,
+  Grid,
+  Paper,
+  CircularProgress,
+} from '@mui/material';
 
 export default function UserPage({ username }) {
-  const { user } = useContext(AuthContext);
-  const [tab, setTab] = useState(0);
+  const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [reposts, setReposts] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    setError('');
 
-    const fetchData = async () => {
-      try {
-        if (tab === 0) {
-          const res = await api.get(`/users/${username}/posts/`);
-          setPosts(res.data);
-        } else if (tab === 1) {
-          const res = await api.get(`/users/${username}/reposts/`);
-          setReposts(res.data);
-        } else if (tab === 2) {
-          if (!user || user.username !== username) {
-            setLikedPosts([]);
-            return;
-          }
-          const res = await api.get('/posts/liked/');
-          setLikedPosts(res.data);
-        }
-      } catch (err) {
-        setError('Ошибка загрузки данных');
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Получаем профиль пользователя
+    axios.get(`/api/users/${username}/profile/`)
+      .then(res => setProfile(res.data))
+      .catch(() => setProfile(null));
 
-    fetchData();
-  }, [tab, username, user]);
+    // Получаем публикации пользователя
+    axios.get(`/api/users/${username}/posts/`)
+      .then(res => setPosts(res.data))
+      .catch(() => setPosts([]));
 
-  const handleTabChange = (event, newValue) => {
-    setTab(newValue);
-  };
+    // Получаем репосты пользователя
+    axios.get(`/api/users/${username}/reposts/`)
+      .then(res => setReposts(res.data))
+      .catch(() => setReposts([]));
 
-  const isCurrentUser = user && user.username === username;
+    // Получаем лайкнутые посты пользователя
+    axios.get(`/api/users/${username}/liked-posts/`)
+      .then(res => setLikedPosts(res.data))
+      .catch(() => setLikedPosts([]))
+      .finally(() => setLoading(false));
+  }, [username]);
+
+  if (loading) {
+    return (
+      <Container sx={{ textAlign: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Container sx={{ mt: 4, textAlign: 'center' }}>
+        <Typography variant="h6">Пользователь не найден</Typography>
+      </Container>
+    );
+  }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
-      <Typography variant="h4" mb={3}>Профиль: {username}</Typography>
-
-      <Tabs value={tab} onChange={handleTabChange} aria-label="Профиль вкладки">
-        <Tab label="Посты" id="tab-0" aria-controls="tabpanel-0" />
-        <Tab label="Репосты" id="tab-1" aria-controls="tabpanel-1" />
-        {isCurrentUser && <Tab label="Понравившиеся" id="tab-2" aria-controls="tabpanel-2" />}
-      </Tabs>
-
-      {loading && (
-        <Box sx={{ textAlign: 'center', mt: 3 }}>
-          <CircularProgress />
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Avatar
+          src={profile.avatar}
+          sx={{ width: 100, height: 100, mr: 2 }}
+        />
+        <Box>
+          <Typography variant="h4">
+            {profile.first_name} {profile.last_name} ({profile.user?.username || username})
+          </Typography>
+          <Typography variant="body1">{profile.email}</Typography>
+          <Typography variant="body1">{profile.phone}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {profile.country}, {profile.city}
+          </Typography>
         </Box>
-      )}
-      {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+      </Box>
 
-      <TabPanel value={tab} index={0}>
-        {posts.length === 0 && !loading && <Typography>Нет постов</Typography>}
-        {posts.map(post => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </TabPanel>
-
-      <TabPanel value={tab} index={1}>
-        {reposts.length === 0 && !loading && <Typography>Нет репостов</Typography>}
-        {reposts.map(repost => (
-          <Box key={repost.id} mb={2}>
-            <Typography variant="body2" color="text.secondary" mb={1}>
-              Репост от {repost.user.username} — {new Date(repost.created_at).toLocaleString()}
-            </Typography>
-            <PostCard post={repost.original_post} />
-          </Box>
-        ))}
-      </TabPanel>
-
-      {isCurrentUser && (
-        <TabPanel value={tab} index={2}>
-          {likedPosts.length === 0 && !loading && <Typography>Нет понравившихся постов</Typography>}
-          {likedPosts.map(post => (
-            <PostCard key={post.id} post={post} />
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Typography variant="h5">Публикации</Typography>
+          {posts.length === 0 && <Typography>Публикаций нет</Typography>}
+          {posts.map(post => (
+            <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
+              <Typography>{post.content}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(post.created_at).toLocaleString()}
+              </Typography>
+            </Paper>
           ))}
-        </TabPanel>
-      )}
-    </Box>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Typography variant="h5">Репосты</Typography>
+          {reposts.length === 0 && <Typography>Репостов нет</Typography>}
+          {reposts.map(repost => (
+            <Paper key={repost.id} sx={{ p: 2, mb: 2 }}>
+              <Typography>
+                Репост от {repost.user?.username} - оригинал: {repost.original_post?.content?.slice(0, 50) || '...'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(repost.created_at).toLocaleString()}
+              </Typography>
+            </Paper>
+          ))}
+        </Grid>
+
+        <Grid item xs={12}>
+          <Typography variant="h5">Понравившиеся публикации</Typography>
+          {likedPosts.length === 0 && <Typography>Нет понравившихся публикаций</Typography>}
+          {likedPosts.map(post => (
+            <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
+              <Typography>{post.content}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(post.created_at).toLocaleString()}
+              </Typography>
+            </Paper>
+          ))}
+        </Grid>
+      </Grid>
+    </Container>
   );
 }
