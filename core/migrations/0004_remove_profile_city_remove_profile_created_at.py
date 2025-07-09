@@ -19,3 +19,5 @@ class Migration(migrations.Migration):
             name='created_at',
         ),
     ]
+
+# dummy update

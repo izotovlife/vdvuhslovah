@@ -44,3 +44,5 @@ urlpatterns = [
     path('send-reset-email/', SendPasswordResetEmailAPIView.as_view(), name='send-reset-email'),
     path('reset-password/', ResetPasswordAPIView.as_view(), name='reset-password'),
 ]
+
+# dummy update

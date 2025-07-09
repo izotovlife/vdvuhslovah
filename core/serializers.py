@@ -242,3 +242,5 @@ class ResetPasswordSerializer(serializers.Serializer):
         user = self.validated_data['user']
         user.set_password(self.validated_data['new_password'])
         user.save()
+
+# dummy update

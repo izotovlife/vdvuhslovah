@@ -43,3 +43,5 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
     list_display = ('user', 'token', 'created_at', 'expires_at')
     search_fields = ('user__username', 'token')
     list_filter = ('created_at', 'expires_at')
+
+# dummy update
