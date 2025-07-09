@@ -1,4 +1,4 @@
-//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\context\AuthContext.js
+// frontend/src/context/AuthContext.js
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
@@ -9,7 +9,7 @@ const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
 });
 
-// Интерцептор, добавляющий токен в заголовок каждого запроса
+// Интерцептор добавляет токен из localStorage в каждый запрос
 axiosInstance.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -25,7 +25,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
 
-  // Функция выхода
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
@@ -33,7 +32,6 @@ export function AuthProvider({ children }) {
     setAccessToken(null);
   }, []);
 
-  // Получение данных пользователя
   const fetchUser = useCallback(async () => {
     try {
       const response = await axiosInstance.get('/me/');
@@ -45,7 +43,6 @@ export function AuthProvider({ children }) {
     }
   }, [logout]);
 
-  // Проверяем наличие токена при загрузке
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -54,19 +51,32 @@ export function AuthProvider({ children }) {
     }
   }, [fetchUser]);
 
-  // Логин пользователя
-  const login = async (token) => {
-    localStorage.setItem('token', token);
-    setAccessToken(token);
-    await fetchUser();
+  // login принимает username и password, получает токен и загружает профиль
+  const login = async (username, password) => {
+    console.log('Попытка логина с данными:', { username, password });
+    if (!username || !password) {
+      throw new Error('Имя пользователя и пароль должны быть заполнены');
+    }
+
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_API || 'http://localhost:8000/api'}/token/`, {
+        username,
+        password,
+      });
+      const token = response.data.access;
+      if (!token) throw new Error('Токен не получен');
+
+      localStorage.setItem('token', token);
+      setAccessToken(token);
+      await fetchUser();
+    } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
+      throw error;
+    }
   };
 
-  // Обновление данных пользователя
   const updateUser = (newUserData) => {
-    setUser((prevUser) => ({
-      ...prevUser,
-      ...newUserData,
-    }));
+    setUser((prevUser) => ({ ...prevUser, ...newUserData }));
   };
 
   return (

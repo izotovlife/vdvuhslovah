@@ -9,11 +9,10 @@ import {
 import moscowImage from '../assets/moscow.jpg';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
 
 const WelcomePage = () => {
   const [showHeaderText, setShowHeaderText] = useState(false);
-  const [isLogin, setIsLogin] = useState(false); // false — показываем регистрацию, true — вход
+  const [isLogin, setIsLogin] = useState(false); // false — регистрация, true — вход
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -33,12 +32,20 @@ const WelcomePage = () => {
     setError('');
     setSuccess('');
     try {
-      await axios.post('/api/register/', formData);
+      await fetch('/api/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      }).then(res => {
+        if (!res.ok) return res.json().then(data => { throw new Error(data.detail || 'Ошибка при регистрации') });
+        return res.json();
+      });
+
       setSuccess('Регистрация успешна! Теперь войдите.');
       setFormData({ username: '', email: '', password: '' });
       setIsLogin(true);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Ошибка при регистрации');
+      setError(err.message);
     }
   };
 
@@ -47,11 +54,7 @@ const WelcomePage = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await axios.post('/api/token/', {
-        username: formData.username,
-        password: formData.password,
-      });
-      login(response.data.access);
+      await login(formData.username, formData.password);
       navigate('/home');
     } catch (err) {
       setError('Ошибка входа: ' + (err.response?.data?.detail || err.message));

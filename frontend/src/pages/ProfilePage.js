@@ -1,7 +1,7 @@
 // frontend/src/pages/ProfilePage.js
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import {
   Box,
   Typography,
@@ -35,17 +35,19 @@ function TabPanel(props) {
 }
 
 export default function ProfilePage() {
+  const { axiosInstance } = useContext(AuthContext);
+
   const [tabIndex, setTabIndex] = useState(0);
   const [profile, setProfile] = useState({});
   const [editData, setEditData] = useState({});
-  const [file, setFile] = useState(null); // для локального файла аватара
+  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [snackMessage, setSnackMessage] = useState('');
   const [snackOpen, setSnackOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
 
   useEffect(() => {
-    axios.get('/api/profile/')
+    axiosInstance.get('/profile/')
       .then(res => {
         setProfile(res.data);
         setEditData({
@@ -57,7 +59,7 @@ export default function ProfilePage() {
         });
       })
       .catch(console.error);
-  }, []);
+  }, [axiosInstance]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -81,13 +83,13 @@ export default function ProfilePage() {
       formData.append('avatar', file);
     }
 
-    axios.put('/api/profile/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    axiosInstance.put('/profile/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       .then(res => {
         setProfile(res.data);
         setLoading(false);
         setSnackMessage('Профиль успешно обновлен');
         setSnackOpen(true);
-        setFile(null); // очистить локальный файл после успешного обновления
+        setFile(null);
       })
       .catch(() => {
         setLoading(false);
@@ -101,7 +103,7 @@ export default function ProfilePage() {
   };
 
   const handleDelete = () => {
-    axios.delete('/api/profile/')
+    axiosInstance.delete('/profile/')
       .then(() => window.location.href = '/goodbye')
       .catch(console.error);
   };
@@ -173,7 +175,6 @@ export default function ProfilePage() {
             sx={{ mb: 2 }}
           />
 
-          {/* Поле загрузки аватара */}
           <input
             type="file"
             accept="image/*"
@@ -210,7 +211,7 @@ export default function ProfilePage() {
         {profile.reposts && profile.reposts.length > 0 ? profile.reposts.map(repost => (
           <Paper key={repost.id} sx={{ p: 2, mb: 1 }}>
             <Typography>
-              Репост от {repost.user.username} - оригинал: {repost.original_post?.content.slice(0, 50)}...
+              Репост от {typeof repost.user === 'object' ? (repost.user?.username || 'неизвестный') : repost.user} - оригинал: {repost.original_post?.content.slice(0, 50)}...
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {new Date(repost.created_at).toLocaleString()}

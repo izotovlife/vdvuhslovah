@@ -1,27 +1,25 @@
 // frontend/src/components/ProfileEdit.js
 
-// frontend/src/components/ProfileEdit.js
-
-import React, { useState, useEffect } from 'react';
-import api from '../api';
+import React, { useState, useEffect, useContext } from 'react';
 import { Box, TextField, Button, Avatar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 export default function ProfileEdit() {
+  const { user, axiosInstance, updateUser } = useContext(AuthContext);
+
   const [avatar, setAvatar] = useState(null);
   const [bio, setBio] = useState('');
   const [phone, setPhone] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/profile/')
-      .then(res => {
-        setBio(res.data.bio || '');
-        setPhone(res.data.phone || '');
-        setAvatar(res.data.avatar || null);
-      })
-      .catch(() => alert('Ошибка при загрузке данных профиля'));
-  }, []);
+    if (user) {
+      setBio(user.bio || '');
+      setPhone(user.phone || '');
+      setAvatar(user.avatar || null);
+    }
+  }, [user]);
 
   const handleAvatarChange = (e) => {
     if (e.target.files.length > 0) {
@@ -38,15 +36,17 @@ export default function ProfileEdit() {
     formData.append('phone', phone);
 
     try {
-      await api.put('/profile/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await axiosInstance.put('/profile/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      updateUser(response.data);
+
       alert('Профиль обновлён');
       navigate('/profile');
-    } catch {
+    } catch (error) {
       alert('Ошибка при сохранении профиля');
+      console.error('Ошибка обновления профиля:', error.response || error.message);
     }
   };
 
