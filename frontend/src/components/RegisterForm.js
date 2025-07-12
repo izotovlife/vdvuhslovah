@@ -3,9 +3,8 @@
 import React, { useState } from 'react';
 import { TextField, Button, Box, Typography } from '@mui/material';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
-export default function RegisterForm() {
+export default function RegisterForm({ onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -14,7 +13,6 @@ export default function RegisterForm() {
   });
 
   const [errors, setErrors] = useState({});
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -25,18 +23,19 @@ export default function RegisterForm() {
     setErrors({});
 
     if (formData.password !== formData.password2) {
-      setErrors({ password2: 'Пароли не совпадают' });
+      setErrors({ password2: ['Пароли не совпадают'] });
       return;
     }
 
     try {
       await axios.post(`${process.env.REACT_APP_API}/register/`, formData);
-      navigate('/login');
+      // После успешной регистрации предлагается перейти на форму входа
+      onSwitchToLogin();
     } catch (err) {
       if (err.response?.data) {
-        setErrors(err.response.data); // Ожидаем объект с ошибками по полям
+        setErrors(err.response.data);
       } else {
-        setErrors({ non_field_errors: 'Ошибка регистрации. Попробуйте позже.' });
+        setErrors({ non_field_errors: ['Ошибка регистрации. Попробуйте позже.'] });
       }
     }
   };
@@ -98,13 +97,20 @@ export default function RegisterForm() {
 
       {errors.non_field_errors && (
         <Typography color="error" variant="body2" mt={1}>
-          {errors.non_field_errors}
+          {errors.non_field_errors.join(' ')}
         </Typography>
       )}
 
       <Button type="submit" variant="contained" sx={{ mt: 2 }} fullWidth>
         Зарегистрироваться
       </Button>
+
+      <Typography mt={2} textAlign="center">
+        Уже есть аккаунт?{' '}
+        <Button variant="text" onClick={onSwitchToLogin}>
+          Войти
+        </Button>
+      </Typography>
     </Box>
   );
 }

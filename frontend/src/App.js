@@ -12,15 +12,14 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 
-import RegisterPageWithBackground from './pages/RegisterPageWithBackground';
-import LoginPageWithBackground from './pages/LoginPageWithBackground';
+import AuthPage from './components/AuthPage'; // импортируем новую страницу с переключением
 
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
 function PrivateRoute({ children }) {
   const { isLoggedIn, loading } = useContext(AuthContext);
   if (loading) return <div>Загрузка...</div>;
-  return isLoggedIn ? children : <Navigate to="/" />;
+  return isLoggedIn ? children : <Navigate to="/auth" />; // теперь редирект на /auth
 }
 
 function UserPageWrapper() {
@@ -37,9 +36,9 @@ function AppRoutes() {
     <Router>
       <Header />
       <Routes>
-        {/* Регистрация с фоном */}
-        <Route path="/" element={<RegisterPageWithBackground />} />
-        <Route path="/register" element={<RegisterPageWithBackground />} />
+        {/* Одна страница для входа/регистрации с переключением */}
+        <Route path="/" element={<Navigate to="/auth" replace />} />
+        <Route path="/auth" element={<AuthPage />} />
 
         {/* Приватные маршруты */}
         <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
@@ -54,8 +53,8 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Логин с фоном */}
-        <Route path="/login" element={<LoginPageWithBackground />} />
+        {/* Любые другие пути редиректить на /auth или 404 */}
+        <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     </Router>
   );
