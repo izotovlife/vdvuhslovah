@@ -1,55 +1,40 @@
 # auto_push.ps1
 
-# 1. Переход в папку, где находится скрипт
+# Перейти в каталог скрипта
 Set-Location -Path $PSScriptRoot
 
-# 2. Подготовка логов
-$logFile = Join-Path $PSScriptRoot "push_log.txt"
-"" | Out-File $logFile  # Очистка лога
-$logLines = @()
-$now = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-$logLines += "=== Автообновление начато: $now ==="
+# Удалить .pyc и __pycache__
+Get-ChildItem -Recurse -Include __pycache__,*.pyc | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
 
-Write-Host "🔍 Поиск всех .py файлов для dummy update..."
-
-# 3. Обновляем все .py файлы
-$updatedFiles = @()
-$pyFiles = Get-ChildItem -Recurse -Filter *.py | Where-Object {
-    $_.FullName -notmatch "__pycache__" -and
-    $_.FullName -notmatch "\\venv\\" -and
-    $_.FullName -notmatch "\\env\\"
+# Проверить изменения
+$gitStatus = git status --porcelain
+if (-not $gitStatus) {
+  Write-Host "✅ Нет изменений для коммита. Завершено." -ForegroundColor Green
+  exit
 }
 
-foreach ($file in $pyFiles) {
-    $content = Get-Content $file.FullName
-    if ($content -notcontains "# dummy update") {
-        Add-Content -Path $file.FullName -Value "`n# dummy update"
-        $logLines += "✅ Обновлён файл: $($file.FullName)"
-    } else {
-        $logLines += "⏭ Пропущен (уже содержит dummy update): $($file.FullName)"
-    }
+# Получить текущую дату и время
+$now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+# Dummy update во все .py файлы (кроме миграций и venv)
+$files = Get-ChildItem -Recurse -Include *.py | Where-Object {
+  $_.FullName -notmatch "\\migrations\\" -and $_.FullName -notmatch "\\venv\\"
 }
 
-# 4. Добавляем изменения
+foreach ($file in $files) {
+  Add-Content -Path $file.FullName -Value "`n# updated $now" -Encoding utf8
+}
+
+# Добавить в git
 git add .
 
-# 5. Формируем сообщение коммита
-$commitMessage = "Auto commit with dummy update $now"
+# Показать список
+Write-Host "📄 Изменённые файлы:" -ForegroundColor Cyan
+git diff --cached --name-only | ForEach-Object { Write-Host "• $_" }
 
-# 6. Проверка: есть ли изменения
-if (-not (git diff --cached --quiet)) {
-    git commit -m $commitMessage
-    $logLines += "📝 Commit: $commitMessage"
+# Коммит
+git commit -m "Auto commit with dummy update $now"
 
-    git pull --rebase origin main
-    git push origin main
-
-    $logLines += "✅ Изменения отправлены на GitHub."
-} else {
-    $logLines += "⚠️ Нет изменений для коммита. Всё уже актуально."
-}
-
-$logLines += "=== Завершено: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ==="
-
-# 7. Выводим лог в консоль и сохраняем в файл
-$logLines | Tee-Object -FilePath $logFile
+# Автоматическая отправка без подтверждения
+git push origin main
+Write-Host "✅ Изменения успешно отправлены на GitHub ($now)" -ForegroundColor Green
