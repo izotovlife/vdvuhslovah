@@ -105,3 +105,5 @@ class PasswordResetToken(models.Model):
 
     def __str__(self):
         return f"Password reset token for {self.user.username} (expires: {self.expires_at})"
+
+# dummy update
