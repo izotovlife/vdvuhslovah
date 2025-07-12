@@ -1,7 +1,5 @@
 // frontend/src/components/Header.js
 
-// frontend/src/components/Header.js
-
 import React, { useContext } from 'react';
 import { AppBar, Toolbar, IconButton, Avatar, Button, Typography } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -20,9 +18,8 @@ export default function Header() {
   const hiddenPaths = ['/', '/login', '/register', '/welcome'];
   if (!isLoggedIn || hiddenPaths.includes(location.pathname)) return null;
 
-  const avatarUrl = user?.profile?.avatar
-    ? `http://localhost:8000${user.profile.avatar}`
-    : undefined;
+  // Берём полный URL из user.profile.avatar
+  const avatarUrl = user?.profile?.avatar || undefined;
 
   return (
     <AppBar position="static">
@@ -36,7 +33,6 @@ export default function Header() {
           вДвухСловах
         </Typography>
 
-        {/* Удалены ссылки на "Понравившиеся" и "Репосты" */}
         <IconButton component={Link} to="/profile" sx={{ p: 0, marginRight: 2 }}>
           <Avatar
             src={avatarUrl}

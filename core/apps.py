@@ -2,11 +2,6 @@
 
 from django.apps import AppConfig
 
-
-class CoreConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'core'
-
 class CoreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'core'
@@ -14,10 +9,4 @@ class CoreConfig(AppConfig):
     def ready(self):
         import core.signals  # noqa
 
-# dummy update
-
-# updated 2025-07-12 11:27:40
-
-# updated 2025-07-12 11:31:56
-
-# updated 2025-07-12 11:40:37
+# updated 2025-07-12 22:40:59

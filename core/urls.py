@@ -8,7 +8,8 @@ from .views import (
     UserCommentsAPIView, ChangePasswordAPIView, CurrentUserAPIView,
     SendPasswordResetEmailAPIView, ResetPasswordAPIView,
     LikedPostsAPIView, UserRepostsListAPIView,
-    PublicProfileView
+    PublicProfileView, NotificationListAPIView,
+    PasswordCheckAPIView  # Новый класс для проверки сложности пароля
 )
 
 urlpatterns = [
@@ -43,12 +44,11 @@ urlpatterns = [
     # Восстановление пароля
     path('send-reset-email/', SendPasswordResetEmailAPIView.as_view(), name='send-reset-email'),
     path('reset-password/', ResetPasswordAPIView.as_view(), name='reset-password'),
+
+    # Маршрут для проверки сложности пароля
+    path('password-check/', PasswordCheckAPIView.as_view(), name='password-check'),
+
+    # Оставшиеся маршруты уведомлений
+    path('notifications/', NotificationListAPIView.as_view(), name='notifications'),
 ]
-
-# dummy update
-
-# updated 2025-07-12 11:27:40
-
-# updated 2025-07-12 11:31:56
-
-# updated 2025-07-12 11:40:37
+# updated 2025-07-12 22:40:59

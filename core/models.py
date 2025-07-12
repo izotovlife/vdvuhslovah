@@ -5,7 +5,6 @@ from django.contrib.auth.models import User
 from django.utils.crypto import get_random_string
 from django.utils import timezone
 
-
 class Profile(models.Model):
     BIRTH_DATE_VISIBILITY_CHOICES = [
         ('public', 'Показывать всем'),
@@ -14,22 +13,24 @@ class Profile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    phone = models.CharField(max_length=20, blank=True)  # добавлено поле phone
+    phone = models.CharField(max_length=20, blank=True)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     city = models.CharField(max_length=100, blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     banner = models.ImageField(upload_to='banners/', blank=True, null=True)
 
-    bio = models.TextField(blank=True)  # биография
-    location = models.CharField(max_length=255, blank=True)  # местоположение
-    website = models.URLField(blank=True)  # ссылка на сайт
-    birth_date = models.DateField(blank=True, null=True)  # дата рождения
+    bio = models.TextField(blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    website = models.URLField(blank=True)
+    birth_date = models.DateField(blank=True, null=True)
     birth_date_visibility = models.CharField(
         max_length=10,
         choices=BIRTH_DATE_VISIBILITY_CHOICES,
         default='public',
     )
+
+    objects = models.Manager()
 
     def __str__(self):
         return self.user.username
@@ -53,6 +54,8 @@ class Post(models.Model):
     def repost_count(self):
         return self.reposts.count()
 
+    objects = models.Manager()
+
 
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -63,6 +66,8 @@ class Comment(models.Model):
     def __str__(self):
         return f"{self.user.username} прокомментировал пост {self.post.id}"
 
+    objects = models.Manager()
+
 
 class Repost(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -71,6 +76,8 @@ class Repost(models.Model):
 
     def __str__(self):
         return f"{self.user.username} репостнул пост {self.original_post.id}"
+
+    objects = models.Manager()
 
 
 class Favorite(models.Model):
@@ -86,19 +93,16 @@ class Favorite(models.Model):
     def __str__(self):
         return f"{self.user.username} добавил в избранное пост {self.post.id}"
 
+    objects = models.Manager()
+
 
 class PasswordResetToken(models.Model):
-    """
-    Модель для хранения токенов восстановления пароля.
-    Каждый токен привязан к определенному пользователю и имеет срок действия.
-    """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     token = models.CharField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 
     def create_token(self):
-        """Метод для генерации уникального токена восстановления пароля."""
         self.token = get_random_string(length=64)
         self.expires_at = timezone.now() + timezone.timedelta(hours=24)
         self.save()
@@ -106,10 +110,28 @@ class PasswordResetToken(models.Model):
     def __str__(self):
         return f"Password reset token for {self.user.username} (expires: {self.expires_at})"
 
-# dummy update
+    objects = models.Manager()
 
-# updated 2025-07-12 11:27:40
 
-# updated 2025-07-12 11:31:56
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('like', 'Лайк'),
+        ('comment', 'Комментарий'),
+        ('repost', 'Репост'),
+    )
 
-# updated 2025-07-12 11:40:37
+    recipient = models.ForeignKey(User, related_name='notifications', on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, related_name='sent_notifications', on_delete=models.CASCADE)
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True)
+    repost = models.ForeignKey(Repost, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.sender} {self.notification_type} -> {self.recipient}"
+
+    objects = models.Manager()
+
+# updated 2025-07-12 22:40:59

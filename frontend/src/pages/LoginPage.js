@@ -1,72 +1,54 @@
 // frontend/src/pages/LoginPage.js
 
 import React, { useState, useContext } from 'react';
-import { TextField, Button, Container, Typography, Box, Link } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-export default function LoginPage() {
+const LoginPage = () => {
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     try {
       await login(username, password);
       navigate('/home');
-    } catch (err) {
-      setError('Неверный логин или пароль');
+    } catch {
+      setError('Ошибка входа: проверьте имя пользователя и пароль');
     }
   };
 
   return (
-    <Container maxWidth="xs" sx={{ mt: 8 }}>
-      <Typography variant="h5" align="center" gutterBottom>
-        Вход в аккаунт
-      </Typography>
-      <Box component="form" onSubmit={handleSubmit} noValidate>
-        <TextField
-          label="Имя пользователя"
-          variant="outlined"
-          margin="normal"
-          fullWidth
+    <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+      <div style={{ marginBottom: 12 }}>
+        <label>Имя пользователя</label>
+        <input
+          type="text"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={e => setUsername(e.target.value)}
           required
-          autoFocus
+          style={{ width: '100%', padding: 8 }}
         />
-        <TextField
-          label="Пароль"
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label>Пароль</label>
+        <input
           type="password"
-          variant="outlined"
-          margin="normal"
-          fullWidth
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={e => setPassword(e.target.value)}
           required
+          style={{ width: '100%', padding: 8 }}
         />
-        {error && (
-          <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-            {error}
-          </Typography>
-        )}
-        <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
-          Войти
-        </Button>
-      </Box>
-
-      <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <Link href="/register" underline="hover" sx={{ mr: 2 }}>
-          Регистрация
-        </Link>
-        <Link href="/forgot-password" underline="hover">
-          Забыли пароль?
-        </Link>
-      </Box>
-    </Container>
+      </div>
+      {error && <div style={{ color: 'red', marginBottom: 12 }}>{error}</div>}
+      <button type="submit" style={{ padding: '8px 16px' }}>Войти</button>
+    </form>
   );
-}
+};
+
+export default LoginPage;

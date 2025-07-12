@@ -9,7 +9,6 @@ const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API || 'http://localhost:8000/api',
 });
 
-// Интерцептор добавляет токен из localStorage в каждый запрос
 axiosInstance.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -24,36 +23,47 @@ export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
+    console.log('[AuthContext] logout called');
     localStorage.removeItem('token');
     setIsLoggedIn(false);
     setUser(null);
     setAccessToken(null);
+    setLoading(false);
   }, []);
 
   const fetchUser = useCallback(async () => {
+    console.log('[AuthContext] fetchUser called');
+
     try {
       const response = await axiosInstance.get('/me/');
+      console.log('[AuthContext] fetchUser success:', response.data);
       setUser(response.data);
       setIsLoggedIn(true);
     } catch (error) {
-      console.error('Ошибка получения профиля:', error.response?.data || error.message);
+      console.error('[AuthContext] Ошибка получения профиля:', error);
       logout();
+    } finally {
+      console.log('[AuthContext] fetchUser finally - setLoading(false)');
+      setLoading(false);
     }
   }, [logout]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log('[AuthContext] useEffect token:', token);
     if (token) {
       setAccessToken(token);
       fetchUser();
+    } else {
+      console.log('[AuthContext] No token found, setLoading(false)');
+      setLoading(false);
     }
   }, [fetchUser]);
 
-  // login принимает username и password, получает токен и загружает профиль
   const login = async (username, password) => {
-    console.log('Попытка логина с данными:', { username, password });
     if (!username || !password) {
       throw new Error('Имя пользователя и пароль должны быть заполнены');
     }
@@ -70,7 +80,7 @@ export function AuthProvider({ children }) {
       setAccessToken(token);
       await fetchUser();
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
+      console.error('[AuthContext] Ошибка входа:', error.response?.data || error.message);
       throw error;
     }
   };
@@ -89,6 +99,7 @@ export function AuthProvider({ children }) {
         logout,
         axiosInstance,
         updateUser,
+        loading,
       }}
     >
       {children}

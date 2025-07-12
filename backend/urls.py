@@ -1,7 +1,5 @@
 # backend/urls.py
 
-# backend/urls.py
-
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -29,3 +27,5 @@ if settings.DEBUG:
 # updated 2025-07-12 11:31:56
 
 # updated 2025-07-12 11:40:37
+
+# updated 2025-07-12 22:40:59

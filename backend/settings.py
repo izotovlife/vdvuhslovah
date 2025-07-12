@@ -1,3 +1,5 @@
+#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\backend\settings.py
+
 import os
 from decouple import config
 from pathlib import Path
@@ -129,3 +131,5 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 # updated 2025-07-12 11:31:56
 
 # updated 2025-07-12 11:40:37
+
+# updated 2025-07-12 22:40:59

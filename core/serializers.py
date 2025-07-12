@@ -7,7 +7,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Profile, Post, Repost, Comment
+from .models import Profile, Post, Repost, Comment, Notification
 
 # Простые вложенные сериализаторы
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -113,17 +113,14 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop('user', {})
         user = instance.user
 
-        # Обновление пароля
         pw = validated_data.pop('password', None)
         if pw:
             user.set_password(pw)
 
-        # Обновление полей User
         for attr, val in user_data.items():
             setattr(user, attr, val)
         user.save()
 
-        # Обновление полей Profile
         for attr, val in validated_data.items():
             setattr(instance, attr, val)
         instance.save()
@@ -131,7 +128,6 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-# Полный сериализатор User (если нужен)
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     name = serializers.SerializerMethodField()
@@ -141,8 +137,6 @@ class UserSerializer(serializers.ModelSerializer):
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
 
-
-# Сериализаторы для постов, репостов, комментариев и регистрации
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -190,25 +184,34 @@ class RepostSerializer(serializers.ModelSerializer):
         fields = ('id', 'user', 'created_at', 'original_post')
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password2 = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'password2')
-        extra_kwargs = {'password': {'write_only': True}, 'email': {'required': True}}
+        fields = ('username', 'email', 'password')
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'required': True},
+        }
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Имя пользователя занято.")
         return value
+
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email уже используется.")
         return value
-    def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError({"password2": "Пароли не совпадают"})
-        return data
+
+    def validate_password(self, value):
+        if len(value) < 6:
+            raise serializers.ValidationError("Пароль должен быть не менее 6 символов.")
+        if not any(c.isupper() for c in value):
+            raise serializers.ValidationError("Пароль должен содержать хотя бы одну заглавную букву.")
+        if not any(c.isdigit() for c in value):
+            raise serializers.ValidationError("Пароль должен содержать хотя бы одну цифру.")
+        return value
+
     def create(self, validated_data):
-        validated_data.pop('password2')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -256,10 +259,15 @@ class ResetPasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
 
-# dummy update
+class NotificationSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    recipient = UserSerializer(read_only=True)
+    post = SimplePostSerializer(read_only=True)
+    comment = CommentSerializer(read_only=True)
+    repost = RepostSerializer(read_only=True)
 
-# updated 2025-07-12 11:27:40
+    class Meta:
+        model = Notification
+        fields = '__all__'
 
-# updated 2025-07-12 11:31:56
-
-# updated 2025-07-12 11:40:37
+# updated 2025-07-12 22:40:59
