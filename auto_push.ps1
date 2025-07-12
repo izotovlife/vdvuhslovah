@@ -28,13 +28,14 @@ foreach ($file in $files) {
 # Добавить в git
 git add .
 
-# Показать список
+# Показать список изменённых файлов
 Write-Host "📄 Изменённые файлы:" -ForegroundColor Cyan
 git diff --cached --name-only | ForEach-Object { Write-Host "• $_" }
 
-# Коммит
+# Создать коммит
 git commit -m "Auto commit with dummy update $now"
 
-# Автоматическая отправка без подтверждения
+# Отправить изменения на GitHub без подтверждения
 git push origin main
+
 Write-Host "✅ Изменения успешно отправлены на GitHub ($now)" -ForegroundColor Green
