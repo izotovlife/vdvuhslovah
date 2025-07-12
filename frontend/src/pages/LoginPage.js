@@ -1,8 +1,7 @@
 // frontend/src/pages/LoginPage.js
 
 import React, { useState, useContext } from 'react';
-import { TextField, Button, Container, Typography, Box } from '@mui/material';
-import axios from 'axios';
+import { TextField, Button, Container, Typography, Box, Link } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -17,13 +16,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API}/token/`, {
-        username,
-        password,
-      });
-      const token = response.data.access;
-      await login(token); // добавлен await для корректного ожидания загрузки пользователя
-      navigate('/home'); // переход после успешного логина
+      await login(username, password);
+      navigate('/home');
     } catch (err) {
       setError('Неверный логин или пароль');
     }
@@ -63,6 +57,15 @@ export default function LoginPage() {
         <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
           Войти
         </Button>
+      </Box>
+
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Link href="/register" underline="hover" sx={{ mr: 2 }}>
+          Регистрация
+        </Link>
+        <Link href="/forgot-password" underline="hover">
+          Забыли пароль?
+        </Link>
       </Box>
     </Container>
   );

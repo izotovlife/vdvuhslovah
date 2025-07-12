@@ -1,9 +1,8 @@
 // frontend/src/components/UserPage.js
 
-// frontend/src/components/UserPage.js
-
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Box, Typography, Card, CardContent, Tabs, Tab } from '@mui/material';
+import { useParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 function TabPanel(props) {
@@ -15,7 +14,8 @@ function TabPanel(props) {
   );
 }
 
-export default function UserPage({ username }) {
+export default function UserPage() {
+  const { username } = useParams();
   const [tabIndex, setTabIndex] = useState(0);
   const [posts, setPosts] = useState([]);
   const [reposts, setReposts] = useState([]);
@@ -25,7 +25,6 @@ export default function UserPage({ username }) {
   const { user, axiosInstance } = useContext(AuthContext);
   const isOwnProfile = user?.username === username;
 
-  // Fetching data for each tab
   const fetchPosts = useCallback(() => {
     axiosInstance.get(`/users/${username}/posts/`)
       .then(res => setPosts(res.data))
@@ -48,10 +47,7 @@ export default function UserPage({ username }) {
     if (isOwnProfile) {
       axiosInstance.get('/posts/liked/')
         .then(res => setLikedPosts(res.data))
-        .catch((error) => {
-          console.error('Error fetching liked posts:', error.response?.data || error.message);
-          setLikedPosts([]);
-        });
+        .catch(() => setLikedPosts([]));
     }
   }, [isOwnProfile, axiosInstance]);
 
@@ -70,9 +66,8 @@ export default function UserPage({ username }) {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Добавление заголовка, как в Twitter (Username с @) */}
-      <Typography variant="h4" sx={{ marginBottom: 2 }}>
-        {user?.name} <span style={{ color: '#1DA1F2' }}>@{username}</span>
+      <Typography variant="h4" sx={{ mb: 2 }}>
+        {user?.name || username} <span style={{ color: '#1DA1F2' }}>@{username}</span>
       </Typography>
 
       <Tabs value={tabIndex} onChange={handleChange}>
@@ -90,7 +85,7 @@ export default function UserPage({ username }) {
             <Card key={post.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Typography variant="body1">{post.content}</Typography>
-                <Typography variant="caption">
+                <Typography variant="caption" color="text.secondary">
                   Лайков: {post.like_count} | Комментариев: {post.comment_count} | Репостов: {post.repost_count}
                 </Typography>
               </CardContent>
@@ -109,7 +104,7 @@ export default function UserPage({ username }) {
                 <Typography variant="body2">
                   Репост поста #{repost.original_post}
                 </Typography>
-                <Typography variant="caption">
+                <Typography variant="caption" color="text.secondary">
                   Сделан {new Date(repost.created_at).toLocaleString()}
                 </Typography>
               </CardContent>
@@ -126,7 +121,7 @@ export default function UserPage({ username }) {
             <Card key={comment.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Typography variant="body2">{comment.content}</Typography>
-                <Typography variant="caption">
+                <Typography variant="caption" color="text.secondary">
                   Комментарий к посту #{comment.post}
                 </Typography>
               </CardContent>
@@ -144,7 +139,7 @@ export default function UserPage({ username }) {
               <Card key={post.id} sx={{ mb: 2 }}>
                 <CardContent>
                   <Typography variant="body1">{post.content}</Typography>
-                  <Typography variant="caption">
+                  <Typography variant="caption" color="text.secondary">
                     Лайков: {post.like_count} | Комментариев: {post.comment_count} | Репостов: {post.repost_count}
                   </Typography>
                 </CardContent>

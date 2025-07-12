@@ -10,7 +10,7 @@ import ProfileEdit from './components/ProfileEdit';
 import UserPage from './pages/UserPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import ProfilePage from './pages/ProfilePage';  // <-- Импортируем новую страницу профиля
+import ProfilePage from './pages/ProfilePage';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
 function PrivateRoute({ children }) {
@@ -29,7 +29,6 @@ function App() {
 
   useEffect(() => {
     const checkAuthStatus = async () => {
-      // Можно проверить статус аутентификации при старте приложения
       setIsLoading(false);
     };
     checkAuthStatus();
@@ -44,9 +43,7 @@ function App() {
           <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
           <Route path="/profile/edit" element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
           <Route path="/change-password" element={<PrivateRoute><ChangePasswordPage /></PrivateRoute>} />
-          {/* Здесь показываем профиль текущего пользователя */}
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-          {/* Страница другого пользователя по имени */}
           <Route path="/user/:username" element={<UserPageWrapper />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />

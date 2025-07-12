@@ -1,9 +1,9 @@
 // frontend/src/pages/RegisterPage.js
 
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { TextField, Button, Typography, Container, Box, Alert, Link } from '@mui/material';
+import api from '../api'; // импорт вашего axios с базовым URL и настройками
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -21,18 +21,38 @@ const RegisterPage = () => {
     }));
   };
 
+  const validateForm = () => {
+    if (!formData.username.trim()) {
+      setError('Введите имя пользователя');
+      return false;
+    }
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      setError('Введите корректный email');
+      return false;
+    }
+    if (!formData.password || formData.password.length < 6) {
+      setError('Пароль должен содержать минимум 6 символов');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    if (!validateForm()) return;
+
     try {
-      await axios.post('/api/register/', formData);
+      await api.post('/register/', formData);
       navigate('/login');
     } catch (err) {
       const data = err.response?.data;
       if (data) {
         if (typeof data === 'string') setError(data);
-        else if (typeof data.detail === 'string') setError(data.detail);
-        else if (typeof data.username === 'object') setError(data.username.join(' '));
+        else if (data.detail) setError(data.detail);
+        else if (data.username) setError(data.username.join(' '));
+        else if (data.email) setError(data.email.join(' '));
+        else if (data.password) setError(data.password.join(' '));
         else setError('Ошибка при регистрации');
       } else {
         setError('Ошибка сети или сервера');

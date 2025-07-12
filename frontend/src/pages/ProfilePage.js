@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -17,7 +18,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  IconButton
 } from '@mui/material';
+import PhotoCamera from '@mui/icons-material/PhotoCamera';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -36,11 +39,20 @@ function TabPanel(props) {
 
 export default function ProfilePage() {
   const { axiosInstance } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [tabIndex, setTabIndex] = useState(0);
+  const [activityTab, setActivityTab] = useState(0);
   const [profile, setProfile] = useState({});
-  const [editData, setEditData] = useState({});
+  const [editData, setEditData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    city: '',
+  });
   const [file, setFile] = useState(null);
+  const [bannerFile, setBannerFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [snackMessage, setSnackMessage] = useState('');
   const [snackOpen, setSnackOpen] = useState(false);
@@ -71,6 +83,11 @@ export default function ProfilePage() {
     setFile(selectedFile);
   };
 
+  const handleBannerChange = (e) => {
+    const selectedBanner = e.target.files[0];
+    setBannerFile(selectedBanner);
+  };
+
   const handleSave = () => {
     setLoading(true);
     const formData = new FormData();
@@ -79,9 +96,8 @@ export default function ProfilePage() {
     formData.append('email', editData.email);
     formData.append('phone', editData.phone);
     formData.append('city', editData.city);
-    if (file) {
-      formData.append('avatar', file);
-    }
+    if (file) formData.append('avatar', file);
+    if (bannerFile) formData.append('banner', bannerFile);
 
     axiosInstance.put('/profile/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       .then(res => {
@@ -90,6 +106,7 @@ export default function ProfilePage() {
         setSnackMessage('Профиль успешно обновлен');
         setSnackOpen(true);
         setFile(null);
+        setBannerFile(null);
       })
       .catch(() => {
         setLoading(false);
@@ -99,7 +116,7 @@ export default function ProfilePage() {
   };
 
   const handlePasswordChange = () => {
-    window.location.href = '/change-password';
+    navigate('/change-password');
   };
 
   const handleDelete = () => {
@@ -112,75 +129,93 @@ export default function ProfilePage() {
     setTabIndex(newValue);
   };
 
+  const handleActivityTabChange = (event, newValue) => {
+    setActivityTab(newValue);
+  };
+
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexDirection: 'column' }}>
-        <Avatar
-          src={file ? URL.createObjectURL(file) : profile.avatar}
-          sx={{ width: 100, height: 100, mb: 2 }}
+      <Box
+        sx={{
+          position: 'relative',
+          height: 200,
+          backgroundImage: `url(${bannerFile ? URL.createObjectURL(bannerFile) : profile.banner})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          borderRadius: 2,
+          mb: -10,
+          cursor: 'pointer'
+        }}
+        onClick={() => document.getElementById('banner-input').click()}
+      >
+        <input
+          type="file"
+          accept="image/*"
+          id="banner-input"
+          style={{ display: 'none' }}
+          onChange={handleBannerChange}
         />
-        <Typography variant="h5">{profile.first_name} {profile.last_name}</Typography>
+        <IconButton
+          sx={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.7)' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            document.getElementById('banner-input').click();
+          }}
+        >
+          <PhotoCamera />
+        </IconButton>
       </Box>
 
-      <Tabs
-        value={tabIndex}
-        onChange={handleTabChange}
-        aria-label="Profile tabs"
-        centered
-      >
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexDirection: 'column', position: 'relative' }}>
+        <Box
+          sx={{ position: 'relative', cursor: 'pointer' }}
+          onClick={() => document.getElementById('avatar-input').click()}
+        >
+          <Avatar
+            src={file ? URL.createObjectURL(file) : profile.avatar}
+            sx={{ width: 100, height: 100, mb: 2, border: '3px solid white' }}
+          />
+          <input
+            type="file"
+            accept="image/*"
+            id="avatar-input"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <IconButton
+            sx={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.7)' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              document.getElementById('avatar-input').click();
+            }}
+          >
+            <PhotoCamera fontSize="small" />
+          </IconButton>
+        </Box>
+
+        <Typography variant="h5">{profile.first_name} {profile.last_name}</Typography>
+        {profile.pinned_post && (
+          <Paper sx={{ mt: 2, p: 2, borderLeft: '4px solid #1976d2' }}>
+            <Typography variant="caption" color="text.secondary">
+              Закреплённый пост
+            </Typography>
+            <Typography variant="body1">{profile.pinned_post.content}</Typography>
+          </Paper>
+        )}
+      </Box>
+
+      <Tabs value={tabIndex} onChange={handleTabChange} centered>
         <Tab label="Основное" />
         <Tab label="Активность" />
       </Tabs>
 
       <TabPanel value={tabIndex} index={0}>
         <Box component="form" noValidate sx={{ mt: 2 }}>
-          <TextField
-            fullWidth
-            label="Имя"
-            name="first_name"
-            value={editData.first_name}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Фамилия"
-            name="last_name"
-            value={editData.last_name}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Email"
-            name="email"
-            value={editData.email}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Телефон"
-            name="phone"
-            value={editData.phone}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Город"
-            name="city"
-            value={editData.city}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ marginTop: 16, marginBottom: 16 }}
-          />
+          <TextField fullWidth label="Имя" name="first_name" value={editData.first_name} onChange={handleChange} sx={{ mb: 2 }} />
+          <TextField fullWidth label="Фамилия" name="last_name" value={editData.last_name} onChange={handleChange} sx={{ mb: 2 }} />
+          <TextField fullWidth label="Email" name="email" value={editData.email} onChange={handleChange} sx={{ mb: 2 }} />
+          <TextField fullWidth label="Телефон" name="phone" value={editData.phone} onChange={handleChange} sx={{ mb: 2 }} />
+          <TextField fullWidth label="Город" name="city" value={editData.city} onChange={handleChange} sx={{ mb: 2 }} />
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
             <Button variant="contained" onClick={handleSave} disabled={loading}>
@@ -197,37 +232,46 @@ export default function ProfilePage() {
       </TabPanel>
 
       <TabPanel value={tabIndex} index={1}>
-        <Typography variant="h6" sx={{ mb: 2 }}>Публикации</Typography>
-        {profile.posts && profile.posts.length > 0 ? profile.posts.map(post => (
-          <Paper key={post.id} sx={{ p: 2, mb: 1 }}>
-            <Typography>{post.content}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {new Date(post.created_at).toLocaleString()}
-            </Typography>
-          </Paper>
-        )) : <Typography>Публикаций нет</Typography>}
+        <Tabs value={activityTab} onChange={handleActivityTabChange} centered sx={{ mb: 2 }}>
+          <Tab label="Публикации" />
+          <Tab label="Репосты" />
+          <Tab label="Понравившиеся" />
+        </Tabs>
 
-        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Репосты</Typography>
-        {profile.reposts && profile.reposts.length > 0 ? profile.reposts.map(repost => (
-          <Paper key={repost.id} sx={{ p: 2, mb: 1 }}>
-            <Typography>
-              Репост от {typeof repost.user === 'object' ? (repost.user?.username || 'неизвестный') : repost.user} - оригинал: {repost.original_post?.content.slice(0, 50)}...
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {new Date(repost.created_at).toLocaleString()}
-            </Typography>
-          </Paper>
-        )) : <Typography>Репостов нет</Typography>}
+        <TabPanel value={activityTab} index={0}>
+          {profile.posts && profile.posts.length > 0 ? profile.posts.map(post => (
+            <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
+              <Typography>{post.content}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(post.created_at).toLocaleString()}
+              </Typography>
+            </Paper>
+          )) : <Typography>Публикаций нет</Typography>}
+        </TabPanel>
 
-        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Понравившиеся публикации</Typography>
-        {profile.liked_posts && profile.liked_posts.length > 0 ? profile.liked_posts.map(post => (
-          <Paper key={post.id} sx={{ p: 2, mb: 1 }}>
-            <Typography>{post.content}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {new Date(post.created_at).toLocaleString()}
-            </Typography>
-          </Paper>
-        )) : <Typography>Нет понравившихся публикаций</Typography>}
+        <TabPanel value={activityTab} index={1}>
+          {profile.reposts && profile.reposts.length > 0 ? profile.reposts.map(repost => (
+            <Paper key={repost.id} sx={{ p: 2, mb: 2 }}>
+              <Typography>
+                Репост от {repost.user?.username || 'неизвестный'} — оригинал: {repost.original_post?.content?.slice(0, 50) || '...'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(repost.created_at).toLocaleString()}
+              </Typography>
+            </Paper>
+          )) : <Typography>Репостов нет</Typography>}
+        </TabPanel>
+
+        <TabPanel value={activityTab} index={2}>
+          {profile.liked_posts && profile.liked_posts.length > 0 ? profile.liked_posts.map(post => (
+            <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
+              <Typography>{post.content}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(post.created_at).toLocaleString()}
+              </Typography>
+            </Paper>
+          )) : <Typography>Нет понравившихся публикаций</Typography>}
+        </TabPanel>
       </TabPanel>
 
       <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>

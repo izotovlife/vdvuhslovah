@@ -7,15 +7,32 @@ from django.utils import timezone
 
 
 class Profile(models.Model):
+    BIRTH_DATE_VISIBILITY_CHOICES = [
+        ('public', 'Показывать всем'),
+        ('followers', 'Только подписчикам'),
+        ('private', 'Только себе'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
-    bio = models.TextField(blank=True)
-    phone = models.CharField(max_length=20, blank=True)
-    country = models.CharField(max_length=100, blank=True)  # Добавлено поле страны
-    city = models.CharField(max_length=100, blank=True)     # Добавлено поле города
+    phone = models.CharField(max_length=20, blank=True)  # добавлено поле phone
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    banner = models.ImageField(upload_to='banners/', blank=True, null=True)
+
+    bio = models.TextField(blank=True)  # биография
+    location = models.CharField(max_length=255, blank=True)  # местоположение
+    website = models.URLField(blank=True)  # ссылка на сайт
+    birth_date = models.DateField(blank=True, null=True)  # дата рождения
+    birth_date_visibility = models.CharField(
+        max_length=10,
+        choices=BIRTH_DATE_VISIBILITY_CHOICES,
+        default='public',
+    )
 
     def __str__(self):
-        return f"{self.user.username}'s profile"
+        return self.user.username
 
 
 class Post(models.Model):
@@ -88,5 +105,3 @@ class PasswordResetToken(models.Model):
 
     def __str__(self):
         return f"Password reset token for {self.user.username} (expires: {self.expires_at})"
-
-# dummy update

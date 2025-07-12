@@ -31,6 +31,7 @@ class SimpleRepostSerializer(serializers.ModelSerializer):
 # Сериализатор для чтения профиля
 class ProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
+    banner = serializers.SerializerMethodField()
     name = serializers.CharField(source='user.get_full_name', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
@@ -40,20 +41,28 @@ class ProfileSerializer(serializers.ModelSerializer):
     liked_posts = serializers.SerializerMethodField()
     country = serializers.CharField(read_only=True)
     city = serializers.CharField(read_only=True)
+    bio = serializers.CharField(read_only=True)
+    phone = serializers.CharField(read_only=True)
 
     class Meta:
         model = Profile
         fields = (
-            'id','avatar','bio','phone',
-            'name','email','first_name','last_name',
-            'country','city',
-            'posts','reposts','liked_posts'
+            'id', 'avatar', 'banner', 'bio', 'phone',
+            'name', 'email', 'first_name', 'last_name',
+            'country', 'city',
+            'posts', 'reposts', 'liked_posts'
         )
 
     def get_avatar(self, obj):
         request = self.context.get('request')
         if obj.avatar and hasattr(obj.avatar, 'url'):
             return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
+
+    def get_banner(self, obj):
+        request = self.context.get('request')
+        if obj.banner and hasattr(obj.banner, 'url'):
+            return request.build_absolute_uri(obj.banner.url) if request else obj.banner.url
         return None
 
     def get_posts(self, obj):
@@ -78,14 +87,18 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True, required=False)
     country = serializers.CharField(required=False, allow_blank=True)
     city = serializers.CharField(required=False, allow_blank=True)
+    bio = serializers.CharField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    banner = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Profile
         fields = (
-            'avatar','bio','phone',
-            'first_name','last_name','email',
-            'password','password2',
-            'country','city'
+            'avatar', 'banner', 'bio', 'phone',
+            'first_name', 'last_name', 'email',
+            'password', 'password2',
+            'country', 'city'
         )
 
     def validate(self, data):
@@ -124,7 +137,7 @@ class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     class Meta:
         model = User
-        fields = ('id','username','first_name','last_name','email','name','profile')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'name', 'profile')
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
 
@@ -138,8 +151,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id','user','post_content','post_author','content','created_at')
-        read_only_fields = ('id','user','created_at')
+        fields = ('id', 'user', 'post_content', 'post_author', 'content', 'created_at')
+        read_only_fields = ('id', 'user', 'created_at')
 
     def create(self, validated_data):
         return Comment.objects.create(**validated_data)
@@ -157,9 +170,9 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = (
-            'id','author','author_username','content','created_at',
-            'like_count','comment_count','repost_count','liked_by_user',
-            'comments','reposts'
+            'id', 'author', 'author_username', 'content', 'created_at',
+            'like_count', 'comment_count', 'repost_count', 'liked_by_user',
+            'comments', 'reposts'
         )
 
     def get_liked_by_user(self, obj):
@@ -174,13 +187,13 @@ class RepostSerializer(serializers.ModelSerializer):
     original_post = PostSerializer(read_only=True)
     class Meta:
         model = Repost
-        fields = ('id','user','created_at','original_post')
+        fields = ('id', 'user', 'created_at', 'original_post')
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ('username','email','password','password2')
+        fields = ('username', 'email', 'password', 'password2')
         extra_kwargs = {'password': {'write_only': True}, 'email': {'required': True}}
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():

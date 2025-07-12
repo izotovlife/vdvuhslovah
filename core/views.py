@@ -30,7 +30,7 @@ class ProfileDetailAPIView(mixins.UpdateModelMixin, generics.GenericAPIView):
         return ProfileSerializer
 
     def get_object(self):
-        profile, created = Profile.objects.get_or_create(user=self.request.user)
+        profile, _created = Profile.objects.get_or_create(user=self.request.user)
         return profile
 
     def get_serializer_context(self):
@@ -59,6 +59,11 @@ class PublicProfileView(generics.RetrieveAPIView):
         username = self.kwargs.get('username')
         profile = get_object_or_404(Profile, user__username=username)
         return profile
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
 
 class PostListCreateAPIView(generics.ListCreateAPIView):
@@ -99,8 +104,14 @@ class PostRepostAPIView(APIView):
 
     def post(self, request, pk):
         post = get_object_or_404(Post, id=pk)
-        repost, created = Repost.objects.get_or_create(user=request.user, original_post=post)
-        serializer = RepostSerializer(repost)
+        try:
+            repost, created = Repost.objects.get_or_create(user=request.user, original_post=post)
+        except Exception as e:
+            return Response(
+                {"detail": "Ошибка при создании репоста: " + str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = RepostSerializer(repost, context={'request': request})
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(serializer.data, status=status_code)
 
@@ -163,6 +174,11 @@ class UserRepostsAPIView(generics.ListAPIView):
         uname = self.kwargs.get("username")
         return Repost.objects.filter(user__username=uname).order_by("-created_at")
 
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
+
 
 class UserCommentsAPIView(generics.ListAPIView):
     serializer_class = CommentSerializer
@@ -171,6 +187,11 @@ class UserCommentsAPIView(generics.ListAPIView):
     def get_queryset(self):
         uname = self.kwargs.get("username")
         return Comment.objects.filter(user__username=uname).order_by("-created_at")
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
 
 class ChangePasswordAPIView(APIView):
@@ -244,5 +265,3 @@ class UserRepostsListAPIView(APIView):
         qs = Repost.objects.filter(user=user).order_by('-created_at')
         serializer = RepostSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
-
-# dummy update

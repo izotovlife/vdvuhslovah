@@ -4,42 +4,52 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
 export default function CommentForm({ postId, onCommentCreated }) {
-  const [content, setContent] = useState('');
-  const [error, setError] = useState('');
   const { axiosInstance } = useContext(AuthContext);
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!content.trim()) {
-      setError('Комментарий не может быть пуст');
-      return;
-    }
+    if (!content.trim()) return;
 
+    setLoading(true);
     try {
-      const response = await axiosInstance.post(`/posts/${postId}/comments/`, { content });
+      const res = await axiosInstance.post(`/posts/${postId}/comments/`, {
+        content: content.trim(),
+      });
+      onCommentCreated(res.data);
       setContent('');
-      setError('');
-      onCommentCreated(response.data);
-    } catch (err) {
-      console.error('Ошибка при добавлении комментария:', err);
-      if (err.response?.status === 401) {
-        setError('Вы не авторизованы. Пожалуйста, войдите.');
-      } else {
-        setError('Ошибка при отправке комментария.');
-      }
+    } catch (error) {
+      console.error('Ошибка при добавлении комментария:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <textarea
+    <form onSubmit={handleSubmit} style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
+      <input
+        type="text"
+        placeholder="Добавить комментарий..."
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Оставьте комментарий"
-        rows={3}
+        disabled={loading}
+        style={{ flexGrow: 1, padding: '6px 8px', fontSize: 14 }}
       />
-      <button type="submit">Отправить</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          marginLeft: 8,
+          padding: '6px 12px',
+          fontSize: 12,
+          cursor: 'pointer',
+          minWidth: 70,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {loading ? 'Отправляю...' : 'Отправить ➤'}
+      </button>
     </form>
   );
 }

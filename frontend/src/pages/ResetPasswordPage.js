@@ -28,10 +28,29 @@ export default function ResetPasswordPage() {
     }
   }, []);
 
+  // Проверка сложности пароля
+  const validatePassword = (pwd) => {
+    const hasLower = /[a-z]/.test(pwd);
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasDigit = /\d/.test(pwd);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+    return hasLower && hasUpper && hasDigit && hasSpecial;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (password !== confirm) {
       setSnackbar({ open: true, message: 'Пароли не совпадают', severity: 'error' });
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setSnackbar({
+        open: true,
+        message: 'Пароль должен содержать строчные и заглавные латинские буквы, цифры и специальные символы',
+        severity: 'error'
+      });
       return;
     }
 
@@ -66,6 +85,7 @@ export default function ResetPasswordPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            helperText="Пароль должен содержать строчные, заглавные буквы, цифры и спецсимволы"
           />
           <TextField
             label="Подтвердите пароль"
