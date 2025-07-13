@@ -1,9 +1,11 @@
 # auto_push.ps1
 
+# auto_push.ps1
+
 # Перейти в каталог скрипта
 Set-Location -Path $PSScriptRoot
 
-# Очистка .pyc и __pycache__ директорий
+# Очистка .pyc и __pycache__ директорий (без ошибок, если файлов нет)
 Get-ChildItem -Recurse -Include __pycache__, *.pyc -Force |
     Where-Object { $_.FullName -notmatch '\\venv\\' } |
     Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
@@ -42,8 +44,8 @@ git diff --cached --name-only | ForEach-Object { Write-Host "• $_" }
 # Определить текущую ветку
 $branch = git rev-parse --abbrev-ref HEAD
 
-# Коммит
-git commit -m "Auto commit with dummy update $now"
+# Коммит (если нет изменений, подавляем ошибку)
+git commit -m "Auto commit with dummy update $now" 2>$null
 
 # Push
 git push origin $branch
