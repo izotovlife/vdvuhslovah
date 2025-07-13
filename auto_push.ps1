@@ -3,39 +3,49 @@
 # Перейти в каталог скрипта
 Set-Location -Path $PSScriptRoot
 
-# Удалить .pyc и __pycache__
-Get-ChildItem -Recurse -Include __pycache__,*.pyc | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+# Очистка .pyc и __pycache__ директорий
+Get-ChildItem -Recurse -Include __pycache__, *.pyc -Force |
+    Where-Object { $_.FullName -notmatch '\\venv\\' } |
+    Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
 
-# Проверить изменения
+# Проверка наличия изменений
 $gitStatus = git status --porcelain
 if (-not $gitStatus) {
-  Write-Host "✅ Нет изменений для коммита. Завершено." -ForegroundColor Green
-  exit
+    Write-Host "✅ Нет изменений для коммита. Завершено." -ForegroundColor Green
+    exit
 }
 
 # Получить текущую дату и время
 $now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+$commentLine = "# updated $now"
 
-# Dummy update во все .py файлы (кроме миграций и venv)
-$files = Get-ChildItem -Recurse -Include *.py | Where-Object {
-  $_.FullName -notmatch "\\migrations\\" -and $_.FullName -notmatch "\\venv\\"
+# Найти .py файлы, исключая служебные директории
+$files = Get-ChildItem -Recurse -Include *.py -File | Where-Object {
+    $_.FullName -notmatch '\\(migrations|venv|.git|.idea|.vscode|__pycache__)\\'
 }
 
+# Добавить строку обновления, если её ещё нет
 foreach ($file in $files) {
-  Add-Content -Path $file.FullName -Value "`n# updated $now" -Encoding utf8
+    $content = Get-Content $file.FullName -Raw
+    if ($content -notmatch [regex]::Escape($commentLine)) {
+        Add-Content -Path $file.FullName -Value "`n$commentLine"
+    }
 }
 
-# Добавить в git
+# Добавить все изменения в Git
 git add .
 
 # Показать список изменённых файлов
-Write-Host "📄 Изменённые файлы:" -ForegroundColor Cyan
+Write-Host "`n📄 Изменённые файлы:" -ForegroundColor Cyan
 git diff --cached --name-only | ForEach-Object { Write-Host "• $_" }
 
-# Создать коммит
+# Определить текущую ветку
+$branch = git rev-parse --abbrev-ref HEAD
+
+# Коммит
 git commit -m "Auto commit with dummy update $now"
 
-# Отправить изменения на GitHub без подтверждения
-git push origin main
+# Push
+git push origin $branch
 
-Write-Host "✅ Изменения успешно отправлены на GitHub ($now)" -ForegroundColor Green
+Write-Host "`n✅ Изменения успешно отправлены на GitHub ($branch, $now)" -ForegroundColor Green
