@@ -1,7 +1,9 @@
 // frontend\src\pages\RegisterPage.js
 
+// frontend/src/pages/RegisterPage.js
+
 import React, { useState, useMemo } from 'react'; // Убираем import useNavigate
-import { TextField, Button, IconButton, InputAdornment, Typography, Box, Alert, Tooltip } from '@mui/material';
+import { TextField, Button, IconButton, InputAdornment, Typography, Box, Alert, Tooltip, Link } from '@mui/material';
 import { Visibility, VisibilityOff, Refresh } from '@mui/icons-material';
 import { publicApi } from '../api';
 
@@ -139,6 +141,13 @@ const RegisterPage = ({ onSwitchToLogin }) => {  // Пропс для перек
       >
         {loading ? 'Регистрация...' : 'Зарегистрироваться'}
       </Button>
+
+      <Typography variant="body2" align="center" sx={{ mt: 2 }}>
+        Уже зарегистрированы?{' '}
+        <Link href="/login" underline="hover">
+          Войти!
+        </Link>
+      </Typography>
     </Box>
   );
 };

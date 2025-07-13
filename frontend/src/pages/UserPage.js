@@ -1,5 +1,6 @@
 // frontend/src/pages/UserPage.js
 
+// frontend/src/pages/UserPage.js
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Box, Typography, Card, CardContent, Tabs, Tab } from '@mui/material';
 import { useParams } from 'react-router-dom';

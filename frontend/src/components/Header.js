@@ -18,8 +18,13 @@ export default function Header() {
   const hiddenPaths = ['/', '/login', '/register', '/welcome'];
   if (!isLoggedIn || hiddenPaths.includes(location.pathname)) return null;
 
-  // Берём полный URL из user.profile.avatar
-  const avatarUrl = user?.profile?.avatar || undefined;
+  // Берём полный URL из user.profile.avatar или задаём дефолтный аватар
+  const avatarUrl = user?.profile?.avatar ? `http://localhost:8000${user.profile.avatar}` : '/default-avatar.png';
+
+  // Переход на публичную страницу пользователя
+  const handleProfileClick = () => {
+    navigate(`/user/${user.username}`);
+  };
 
   return (
     <AppBar position="static">
@@ -33,11 +38,13 @@ export default function Header() {
           вДвухСловах
         </Typography>
 
-        <IconButton component={Link} to="/profile" sx={{ p: 0, marginRight: 2 }}>
+        {/* Кликабельный аватар, который ведет на публичную страницу пользователя */}
+        <IconButton onClick={handleProfileClick} sx={{ p: 0, marginRight: 2 }}>
           <Avatar
             src={avatarUrl}
             alt={user?.username || 'Профиль'}
             sx={{ width: 40, height: 40, objectFit: 'cover' }}
+            onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
           />
         </IconButton>
 
