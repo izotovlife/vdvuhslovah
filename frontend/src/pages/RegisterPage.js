@@ -1,19 +1,16 @@
 // frontend\src\pages\RegisterPage.js
 
-import React, { useState, useMemo } from 'react';
-import {
-  TextField, Button, IconButton, InputAdornment, Typography, Box, Alert, Tooltip
-} from '@mui/material';
+import React, { useState, useMemo } from 'react'; // Убираем import useNavigate
+import { TextField, Button, IconButton, InputAdornment, Typography, Box, Alert, Tooltip } from '@mui/material';
 import { Visibility, VisibilityOff, Refresh } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { publicApi } from '../api';
 
-const RegisterPage = () => {
+const RegisterPage = ({ onSwitchToLogin }) => {  // Пропс для переключения на форму входа
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [success, setSuccess] = useState(null);
 
   const passwordRequirements = useMemo(() => ({
     minLength: formData.password.length >= 6,
@@ -23,9 +20,7 @@ const RegisterPage = () => {
 
   const generatePassword = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let pwd = '';
-    pwd += 'A'; // гарантируем заглавную
-    pwd += '1'; // гарантируем цифру
+    let pwd = 'A1'; // гарантируем заглавную и цифру
     while (pwd.length < 10) {
       pwd += chars[Math.floor(Math.random() * chars.length)];
     }
@@ -39,6 +34,7 @@ const RegisterPage = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     if (!formData.username || !formData.email || !formData.password) {
       setError('Все поля обязательны');
@@ -53,9 +49,14 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       await publicApi.post('/register/', formData);
-      navigate('/auth');  // после регистрации редирект на страницу входа/авторизации
+      setSuccess('Регистрация прошла успешно. Проверьте вашу электронную почту.');
+
+      // Переключение на форму входа через 5 секунд после успешной регистрации
+      setTimeout(() => {
+        onSwitchToLogin();  // Вызов пропса для переключения
+      }, 5000);
+
     } catch (err) {
-      // Обработка ошибок, возможно в разных форматах
       const errMsg =
         err.response?.data?.username?.[0] ||
         err.response?.data?.email?.[0] ||
@@ -73,6 +74,7 @@ const RegisterPage = () => {
       <Typography variant="h5" align="center" gutterBottom>Регистрация</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
       <TextField
         name="username"

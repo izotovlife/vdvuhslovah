@@ -1,7 +1,5 @@
 // src/components/AuthPage.js
 
-// src/components/AuthPage.js
-
 import React, { useState } from 'react';
 import LoginForm from './LoginForm';
 import RegisterPage from '../pages/RegisterPage'; // Импортируем именно RegisterPage

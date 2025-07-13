@@ -21,10 +21,22 @@ export default function UserPage() {
   const [reposts, setReposts] = useState([]);
   const [comments, setComments] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]);
+  const [userInfo, setUserInfo] = useState(null);
+  const [loadingUserInfo, setLoadingUserInfo] = useState(true);
 
   const { user, axiosInstance } = useContext(AuthContext);
   const isOwnProfile = user?.username === username;
 
+  // Загрузка профиля пользователя
+  useEffect(() => {
+    setLoadingUserInfo(true);
+    axiosInstance.get(`/users/${username}/profile/`)
+      .then(res => setUserInfo(res.data))
+      .catch(() => setUserInfo(null))
+      .finally(() => setLoadingUserInfo(false));
+  }, [username, axiosInstance]);
+
+  // Загрузка данных для вкладок
   const fetchPosts = useCallback(() => {
     axiosInstance.get(`/users/${username}/posts/`)
       .then(res => setPosts(res.data))
@@ -64,13 +76,25 @@ export default function UserPage() {
     setTabIndex(newValue);
   };
 
-  return (
-    <Box sx={{ width: '100%' }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>
-        {user?.name || username} <span style={{ color: '#1DA1F2' }}>@{username}</span>
-      </Typography>
+  if (loadingUserInfo) return <div>Загрузка профиля...</div>;
+  if (!userInfo) return <div>Пользователь не найден</div>;
 
-      <Tabs value={tabIndex} onChange={handleChange}>
+  return (
+    <Box sx={{ width: '100%', maxWidth: 800, margin: 'auto' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <img
+          src={userInfo.profile?.avatar || '/default-avatar.png'}
+          alt="avatar"
+          style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', marginRight: 16 }}
+          onError={e => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+        />
+        <Box>
+          <Typography variant="h4">{userInfo.username}</Typography>
+          <Typography variant="body1">{userInfo.profile?.bio || 'Биография отсутствует'}</Typography>
+        </Box>
+      </Box>
+
+      <Tabs value={tabIndex} onChange={handleChange} aria-label="user profile tabs">
         <Tab label="Посты" />
         <Tab label="Репосты" />
         <Tab label="Комментарии" />
@@ -102,7 +126,8 @@ export default function UserPage() {
             <Card key={repost.id} sx={{ mb: 2 }}>
               <CardContent>
                 <Typography variant="body2">
-                  Репост поста #{repost.original_post}
+                  Репост поста #{repost.original_post?.id} — {repost.original_post?.content?.slice(0, 50) || ''}
+                  {repost.original_post?.content && repost.original_post.content.length > 50 ? '...' : ''}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Сделан {new Date(repost.created_at).toLocaleString()}
@@ -122,7 +147,7 @@ export default function UserPage() {
               <CardContent>
                 <Typography variant="body2">{comment.content}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Комментарий к посту #{comment.post}
+                  Комментарий к посту #{comment.post_content ? comment.post_content : comment.post}
                 </Typography>
               </CardContent>
             </Card>
