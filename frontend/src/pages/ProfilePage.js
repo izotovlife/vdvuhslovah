@@ -38,7 +38,7 @@ function TabPanel(props) {
 }
 
 export default function ProfilePage() {
-  const { axiosInstance } = useContext(AuthContext);
+  const { axiosInstance, updateUser } = useContext(AuthContext); // <-- добавил updateUser
   const navigate = useNavigate();
 
   const [tabIndex, setTabIndex] = useState(0);
@@ -102,6 +102,7 @@ export default function ProfilePage() {
     axiosInstance.put('/profile/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       .then(res => {
         setProfile(res.data);
+        updateUser(res.data);  // <-- обновляем глобальный user в контексте!
         setLoading(false);
         setSnackMessage('Профиль успешно обновлен');
         setSnackOpen(true);
