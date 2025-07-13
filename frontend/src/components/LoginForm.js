@@ -9,7 +9,7 @@ export default function LoginForm({ onSwitchToRegister }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();  // <-- добавляем useNavigate
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +17,7 @@ export default function LoginForm({ onSwitchToRegister }) {
 
     try {
       await login(username, password);
-      navigate('/home');  // <-- переход на ленту после успешного входа
+      navigate('/home');
     } catch (err) {
       setError(
         err.response?.data?.detail ||
@@ -29,7 +29,16 @@ export default function LoginForm({ onSwitchToRegister }) {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: 'auto', padding: 20, border: '1px solid #ccc', borderRadius: 8, boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
+    <div
+      style={{
+        maxWidth: 400,
+        margin: 'auto',
+        padding: 20,
+        border: '1px solid #ccc',
+        borderRadius: 8,
+        boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+      }}
+    >
       <h2 style={{ textAlign: 'center' }}>Вход</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <input
@@ -50,17 +59,52 @@ export default function LoginForm({ onSwitchToRegister }) {
         />
         <button
           type="submit"
-          style={{ padding: 12, fontSize: 16, backgroundColor: '#1976d2', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+          style={{
+            padding: 12,
+            fontSize: 16,
+            backgroundColor: '#1976d2',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+          }}
         >
           Войти
         </button>
         {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
       </form>
+
+      {/* Ссылка "Забыли пароль?" */}
+      <p style={{ textAlign: 'right', marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={() => navigate('/forgot-password')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#1976d2',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            padding: 0,
+            fontSize: 14,
+          }}
+        >
+          Забыли пароль?
+        </button>
+      </p>
+
       <p style={{ textAlign: 'center', marginTop: 16 }}>
         Нет аккаунта?{' '}
         <button
           onClick={onSwitchToRegister}
-          style={{ background: 'none', border: 'none', color: '#1976d2', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#1976d2',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            padding: 0,
+          }}
           type="button"
         >
           Зарегистрироваться

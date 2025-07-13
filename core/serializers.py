@@ -9,7 +9,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import Profile, Post, Repost, Comment, Notification
 
-# Простые вложенные сериализаторы
+import random
+import string
+
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -28,7 +30,6 @@ class SimpleRepostSerializer(serializers.ModelSerializer):
         fields = ('id', 'user', 'created_at')
 
 
-# Сериализатор для чтения профиля
 class ProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.SerializerMethodField()
     banner = serializers.SerializerMethodField()
@@ -78,7 +79,6 @@ class ProfileSerializer(serializers.ModelSerializer):
         return SimplePostSerializer(qs, many=True, context=self.context).data
 
 
-# Сериализатор для обновления профиля
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', allow_blank=True, required=False)
     last_name = serializers.CharField(source='user.last_name', allow_blank=True, required=False)
@@ -151,6 +151,7 @@ class CommentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return Comment.objects.create(**validated_data)
 
+
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     author_username = serializers.CharField(source='author.username', read_only=True)
@@ -176,6 +177,7 @@ class PostSerializer(serializers.ModelSerializer):
     def get_reposts(self, obj):
         return obj.reposts.values('id')
 
+
 class RepostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     original_post = PostSerializer(read_only=True)
@@ -183,12 +185,15 @@ class RepostSerializer(serializers.ModelSerializer):
         model = Repost
         fields = ('id', 'user', 'created_at', 'original_post')
 
+
 class RegisterSerializer(serializers.ModelSerializer):
+    generated_password = None
+
     class Meta:
         model = User
         fields = ('username', 'email', 'password')
         extra_kwargs = {
-            'password': {'write_only': True},
+            'password': {'write_only': True, 'required': False},
             'email': {'required': True},
         }
 
@@ -203,6 +208,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
+        if value is None or value == '':
+            return value
         if len(value) < 6:
             raise serializers.ValidationError("Пароль должен быть не менее 6 символов.")
         if not any(c.isupper() for c in value):
@@ -212,13 +219,43 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        use_generated = self.context.get('use_generated_password', False)
+        password = validated_data.get('password')
+
+        if use_generated or not password:
+            password = self.generate_password()
+            self.generated_password = password
+
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            password=validated_data['password']
+            password=password
         )
-        Profile.objects.create(user=user)
+        user.is_active = False  # Блокируем до подтверждения
+        user.save()
+
+        Profile.objects.get_or_create(user=user)
+        self.send_confirmation_email(user)
         return user
+
+    def generate_password(self, length=10):
+        while True:
+            pwd = ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+            if any(c.isupper() for c in pwd) and any(c.isdigit() for c in pwd):
+                return pwd
+
+    def send_confirmation_email(self, user):
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        link = f"http://localhost:3000/activate?uid={uid}&token={token}"
+        send_mail(
+            subject='Подтверждение регистрации',
+            message=f'Для активации аккаунта перейдите по ссылке:\n{link}',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
 
 class SendPasswordResetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -240,6 +277,7 @@ class SendPasswordResetEmailSerializer(serializers.Serializer):
             fail_silently=False,
         )
 
+
 class ResetPasswordSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
@@ -259,6 +297,7 @@ class ResetPasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
 
+
 class NotificationSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
     recipient = UserSerializer(read_only=True)
@@ -270,6 +309,4 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = '__all__'
 
-# updated 2025-07-12 22:40:59
-
-# updated 2025-07-12 23:07:08
+# updated 2025-07-13 21:53:56

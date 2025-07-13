@@ -1,8 +1,10 @@
 // src/components/AuthPage.js
 
+// src/components/AuthPage.js
+
 import React, { useState } from 'react';
 import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
+import RegisterPage from '../pages/RegisterPage'; // Импортируем именно RegisterPage
 
 export default function AuthPage() {
   const [showLogin, setShowLogin] = useState(true);
@@ -33,10 +35,9 @@ export default function AuthPage() {
         {showLogin ? (
           <LoginForm onSwitchToRegister={() => setShowLogin(false)} />
         ) : (
-          <RegisterForm onSwitchToLogin={() => setShowLogin(true)} />
+          <RegisterPage onSwitchToLogin={() => setShowLogin(true)} />  // Используем RegisterPage
         )}
       </div>
     </div>
   );
 }
-
