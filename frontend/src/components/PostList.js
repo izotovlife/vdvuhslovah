@@ -5,6 +5,42 @@ import { AuthContext } from '../context/AuthContext';
 import CommentForm from './CommentForm';
 import { Link } from 'react-router-dom';
 
+// Компонент для одного комментария и его ответов
+function CommentItem({ comment, postId, depth, onCommentCreated }) {
+  const [showReplyForm, setShowReplyForm] = useState(false);
+
+  return (
+    <div style={{ marginLeft: depth * 16, marginBottom: 8 }}>
+      <strong>{comment.user.username}</strong>: {comment.content}
+      <button
+        onClick={() => setShowReplyForm(!showReplyForm)}
+        style={{ marginLeft: 8, fontSize: 12 }}
+      >
+        {showReplyForm ? 'Отмена' : 'Ответить'}
+      </button>
+      {showReplyForm && (
+        <CommentForm
+          postId={postId}
+          parentId={comment.id}
+          onCommentCreated={(newReply) => {
+            onCommentCreated(postId, newReply, comment.id);
+            setShowReplyForm(false);
+          }}
+        />
+      )}
+      {(comment.replies || []).map((reply) => (
+        <CommentItem
+          key={reply.id}
+          comment={reply}
+          postId={postId}
+          depth={depth + 1}
+          onCommentCreated={onCommentCreated}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function PostList() {
   const { axiosInstance } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
@@ -16,7 +52,6 @@ export default function PostList() {
   const fetchPosts = async () => {
     try {
       const res = await axiosInstance.get('/posts/');
-      console.log('posts:', res.data);  // Для отладки — проверь данные
       setPosts(res.data);
     } catch (error) {
       console.error('Ошибка загрузки постов:', error);
@@ -29,9 +64,10 @@ export default function PostList() {
       const liked = res.data.liked;
       const updatedPosts = posts.map(post => {
         if (post.id === postId) {
+          const likeCount = liked ? post.like_count + 1 : post.like_count - 1;
           return {
             ...post,
-            like_count: liked ? post.like_count + 1 : post.like_count - 1,
+            like_count: likeCount < 0 ? 0 : likeCount,
             liked_by_user: liked,
           };
         }
@@ -59,18 +95,33 @@ export default function PostList() {
     }
   };
 
-  const handleNewComment = (postId, newComment) => {
+  const handleNewComment = (postId, newComment, parentId = null) => {
     setPosts(prev =>
       prev.map(post =>
         post.id === postId
           ? {
               ...post,
-              comments: [...(post.comments || []), newComment],
               comment_count: post.comment_count + 1,
+              comments: insertComment(post.comments || [], newComment, parentId),
             }
           : post
       )
     );
+  };
+
+  const insertComment = (comments, newComment, parentId) => {
+    if (!parentId) return [...comments, newComment];
+
+    return comments.map(comment => {
+      if (comment.id === parentId) {
+        const replies = comment.replies || [];
+        return { ...comment, replies: [...replies, newComment] };
+      }
+      if (comment.replies) {
+        return { ...comment, replies: insertComment(comment.replies, newComment, parentId) };
+      }
+      return comment;
+    });
   };
 
   const getAvatarUrl = (avatarPath) => {
@@ -86,7 +137,7 @@ export default function PostList() {
         <div key={post.id} style={{ border: '1px solid #ccc', marginBottom: 16, padding: 8 }}>
           <Link
             to={`/user/${post.author.username}`}
-            style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
           >
             <img
               src={getAvatarUrl(post.author?.profile?.avatar)}
@@ -124,9 +175,13 @@ export default function PostList() {
           <div style={{ marginTop: 12 }}>
             <h4>Комментарии:</h4>
             {(post.comments || []).map(comment => (
-              <div key={comment.id} style={{ marginLeft: 16, marginBottom: 8 }}>
-                <strong>{comment.user.username}</strong>: {comment.content}
-              </div>
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                postId={post.id}
+                depth={0}
+                onCommentCreated={handleNewComment}
+              />
             ))}
             <CommentForm
               postId={post.id}

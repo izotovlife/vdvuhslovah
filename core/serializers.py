@@ -12,19 +12,24 @@ from .models import Profile, Post, Repost, Comment, Notification
 import random
 import string
 
+
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username')
 
+
 class SimplePostSerializer(serializers.ModelSerializer):
     author = SimpleUserSerializer(read_only=True)
+
     class Meta:
         model = Post
         fields = ('id', 'author', 'content', 'created_at')
 
+
 class SimpleRepostSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer(read_only=True)
+
     class Meta:
         model = Repost
         fields = ('id', 'user', 'created_at')
@@ -131,9 +136,11 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'email', 'name', 'profile')
+
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
 
@@ -142,14 +149,32 @@ class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     post_content = serializers.CharField(source='post.content', read_only=True)
     post_author = serializers.CharField(source='post.author.username', read_only=True)
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=Comment.objects.all(), required=False, allow_null=True
+    )
+    replies = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ('id', 'user', 'post_content', 'post_author', 'content', 'created_at')
-        read_only_fields = ('id', 'user', 'created_at')
+        fields = ('id', 'user', 'post_content', 'post_author', 'content', 'created_at', 'parent', 'replies')
+        read_only_fields = ('id', 'user', 'created_at', 'replies')
+
+    def get_replies(self, obj):
+        replies_qs = obj.replies.all().order_by('created_at')
+        return CommentSerializer(replies_qs, many=True, context=self.context).data
 
     def create(self, validated_data):
-        return Comment.objects.create(**validated_data)
+        parent = validated_data.pop('parent', None)
+        # Убираем возможные дублирующие ключи из validated_data
+        validated_data.pop('user', None)
+        validated_data.pop('post', None)
+
+        user = self.context['request'].user
+        post = self.context.get('post')
+        if post is None:
+            raise serializers.ValidationError("Post context is required for creating a comment.")
+
+        return Comment.objects.create(user=user, post=post, parent=parent, **validated_data)
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -159,7 +184,7 @@ class PostSerializer(serializers.ModelSerializer):
     comment_count = serializers.IntegerField(read_only=True)
     repost_count = serializers.IntegerField(read_only=True)
     liked_by_user = serializers.SerializerMethodField()
-    comments = CommentSerializer(many=True, read_only=True)
+    comments = serializers.SerializerMethodField()
     reposts = serializers.SerializerMethodField()
 
     class Meta:
@@ -174,13 +199,19 @@ class PostSerializer(serializers.ModelSerializer):
         req = self.context.get('request')
         return req.user.is_authenticated and obj.likes.filter(id=req.user.id).exists()
 
+    def get_comments(self, obj):
+        root_comments = obj.comments.filter(parent__isnull=True).order_by('created_at')
+        return CommentSerializer(root_comments, many=True, context=self.context).data
+
     def get_reposts(self, obj):
         return obj.reposts.values('id')
+
 
 
 class RepostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     original_post = PostSerializer(read_only=True)
+
     class Meta:
         model = Repost
         fields = ('id', 'user', 'created_at', 'original_post')
@@ -259,10 +290,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class SendPasswordResetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Пользователь с таким email не найден.")
         return value
+
     def save(self, request=None):
         email = self.validated_data['email']
         user = User.objects.get(email=email)
@@ -282,6 +315,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(min_length=6)
+
     def validate(self, data):
         try:
             uid = force_str(urlsafe_base64_decode(data['uid']))
@@ -292,6 +326,7 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Недействительный или просроченный токен.")
         data['user'] = user
         return data
+
     def save(self):
         user = self.validated_data['user']
         user.set_password(self.validated_data['new_password'])
@@ -309,10 +344,4 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = '__all__'
 
-# updated 2025-07-13 21:53:56
-
-# updated 2025-07-13 22:00:14
-
-# updated 2025-07-13 22:09:14
-
-# updated 2025-07-13 23:07:46
+# updated 2025-07-16 21:48:48

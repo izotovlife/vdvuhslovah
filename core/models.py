@@ -60,6 +60,7 @@ class Post(models.Model):
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
+    parent = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)  # Добавлено
     content = models.TextField(max_length=280)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -134,14 +135,4 @@ class Notification(models.Model):
 
     objects = models.Manager()
 
-# updated 2025-07-12 22:40:59
-
-# updated 2025-07-12 23:07:08
-
-# updated 2025-07-13 21:53:56
-
-# updated 2025-07-13 22:00:14
-
-# updated 2025-07-13 22:09:14
-
-# updated 2025-07-13 23:07:46
+# updated 2025-07-16 21:48:48

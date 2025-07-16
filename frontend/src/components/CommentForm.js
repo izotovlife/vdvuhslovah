@@ -2,8 +2,10 @@
 
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import { Box, TextField, Button } from '@mui/material';
+import SendIcon from '@mui/icons-material/Send';
 
-export default function CommentForm({ postId, onCommentCreated }) {
+export default function CommentForm({ postId, parentId = null, onCommentCreated }) {
   const { axiosInstance } = useContext(AuthContext);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,9 +16,10 @@ export default function CommentForm({ postId, onCommentCreated }) {
 
     setLoading(true);
     try {
-      const res = await axiosInstance.post(`/posts/${postId}/comments/`, {
-        content: content.trim(),
-      });
+      const payload = { content: content.trim() };
+      if (parentId) payload.parent = parentId;
+
+      const res = await axiosInstance.post(`/posts/${postId}/comments/`, payload);
       onCommentCreated(res.data);
       setContent('');
     } catch (error) {
@@ -27,29 +30,31 @@ export default function CommentForm({ postId, onCommentCreated }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
-      <input
-        type="text"
-        placeholder="Добавить комментарий..."
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}
+    >
+      <TextField
+        variant="outlined"
+        size="small"
+        placeholder={parentId ? 'Ответить...' : 'Добавить комментарий...'}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         disabled={loading}
-        style={{ flexGrow: 1, padding: '6px 8px', fontSize: 14 }}
+        fullWidth
       />
-      <button
+      <Button
         type="submit"
+        variant="contained"
+        color="primary"
+        size="small"
+        endIcon={<SendIcon />}
         disabled={loading}
-        style={{
-          marginLeft: 8,
-          padding: '6px 12px',
-          fontSize: 12,
-          cursor: 'pointer',
-          minWidth: 70,
-          whiteSpace: 'nowrap',
-        }}
+        sx={{ textTransform: 'none' }}
       >
-        {loading ? 'Отправляю...' : 'Отправить ➤'}
-      </button>
-    </form>
+        {loading ? '...' : 'Отправить'}
+      </Button>
+    </Box>
   );
 }

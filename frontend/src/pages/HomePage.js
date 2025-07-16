@@ -1,5 +1,7 @@
 //C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\HomePage.js
 
+// frontend/src/pages/HomePage.js
+
 import React, { useEffect, useState, useContext } from 'react';
 import {
   Box,
@@ -21,8 +23,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
+import { useNavigate } from 'react-router-dom';
+import CommentItem from '../components/CommentItem';
 
-// Стили
 const PostPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   marginBottom: theme.spacing(3),
@@ -33,6 +36,7 @@ const PostPaper = styled(Paper)(({ theme }) => ({
   '&:hover': {
     boxShadow: theme.shadows[8],
   },
+  cursor: 'default',
 }));
 
 const AuthorInfo = styled('div')(({ theme }) => ({
@@ -40,6 +44,20 @@ const AuthorInfo = styled('div')(({ theme }) => ({
   alignItems: 'center',
   marginBottom: theme.spacing(1),
   gap: theme.spacing(1),
+}));
+
+const ClickableAvatar = styled(Avatar)(({ theme }) => ({
+  width: 36,
+  height: 36,
+  cursor: 'pointer',
+}));
+
+const ClickableUsername = styled(Typography)(({ theme }) => ({
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  '&:hover': {
+    textDecoration: 'underline',
+  },
 }));
 
 const PostContent = styled(Typography)(({ theme }) => ({
@@ -62,25 +80,19 @@ const CommentsSection = styled('div')(({ theme }) => ({
   marginTop: theme.spacing(2),
 }));
 
-const CommentPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(1),
-  marginBottom: theme.spacing(1),
-  borderRadius: theme.spacing(1),
-  backgroundColor: theme.palette.action.hover,
-  marginLeft: theme.spacing(3),
-}));
-
 const HomePage = () => {
   const { user, accessToken } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
   const [popularPosts, setPopularPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newPostText, setNewPostText] = useState('');
-  const [newCommentTextByPostId, setNewCommentTextByPostId] = useState({});
   const [commentsByPostId, setCommentsByPostId] = useState({});
   const [showCommentsFor, setShowCommentsFor] = useState({});
   const [loadingComments, setLoadingComments] = useState({});
   const [showCommentInputFor, setShowCommentInputFor] = useState({});
+  const [newCommentTextByPostId, setNewCommentTextByPostId] = useState({});
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -219,6 +231,10 @@ const HomePage = () => {
     }));
   };
 
+  const onCommentCreated = async (postId, newComment, parentId = null) => {
+    await fetchComments(postId);
+  };
+
   if (loading) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -253,15 +269,18 @@ const HomePage = () => {
         {posts.map((post) => (
           <PostPaper key={post.id} elevation={3}>
             <AuthorInfo>
-              <Avatar
+              <ClickableAvatar
                 src={post.author?.profile?.avatar || ''}
                 alt={post.author_username}
-                sx={{ width: 36, height: 36 }}
+                onClick={() => navigate(`/user/${post.author_username}`)}
               />
               <Box>
-                <Typography variant="subtitle2" fontWeight="bold">
+                <ClickableUsername
+                  variant="subtitle2"
+                  onClick={() => navigate(`/user/${post.author_username}`)}
+                >
                   {post.author_username}
-                </Typography>
+                </ClickableUsername>
                 <Typography variant="caption" color="text.secondary">
                   {post.created_at
                     ? formatDistanceToNow(new Date(post.created_at), {
@@ -328,6 +347,11 @@ const HomePage = () => {
                   size="small"
                   endIcon={<SendIcon />}
                   onClick={() => handleAddComment(post.id)}
+                  sx={{
+                    backgroundColor: '#1976d2',
+                    '&:hover': { backgroundColor: '#1565c0' },
+                    textTransform: 'none',
+                  }}
                 >
                   Отправить
                 </Button>
@@ -352,14 +376,12 @@ const HomePage = () => {
                 {showCommentsFor[post.id] && !loadingComments[post.id] && (
                   <>
                     {(commentsByPostId[post.id] || []).map((comment) => (
-                      <CommentPaper key={comment.id}>
-                        <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
-                          {comment.user.username}
-                        </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {comment.content}
-                        </Typography>
-                      </CommentPaper>
+                      <CommentItem
+                        key={comment.id}
+                        comment={comment}
+                        postId={post.id}
+                        onCommentCreated={onCommentCreated}
+                      />
                     ))}
                   </>
                 )}
@@ -377,8 +399,13 @@ const HomePage = () => {
           <Typography>Пока нет популярных публикаций.</Typography>
         ) : (
           popularPosts.map((post) => (
-            <PostPaper key={post.id} elevation={2} sx={{ p: 2 }}>
-              <Typography variant="subtitle2" fontWeight="bold">
+            <PostPaper
+              key={post.id}
+              elevation={2}
+              sx={{ p: 2, cursor: 'pointer' }}
+              onClick={() => navigate(`/user/${post.author_username}`)} // Перейти на страницу автора
+            >
+              <Typography variant="subtitle2" fontWeight="bold" sx={{ cursor: 'pointer' }}>
                 {post.author_username}
               </Typography>
               <Typography variant="caption" color="text.secondary">
