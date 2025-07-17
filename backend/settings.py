@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
 # Приложения
 INSTALLED_APPS = [
@@ -124,24 +124,4 @@ EMAIL_USE_SSL = config('EMAIL_USE_SSL', cast=bool)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
-# dummy update
-
-# updated 2025-07-12 11:27:40
-
-# updated 2025-07-12 11:31:56
-
-# updated 2025-07-12 11:40:37
-
-# updated 2025-07-12 22:40:59
-
-# updated 2025-07-12 23:07:08
-
-# updated 2025-07-13 21:53:56
-
-# updated 2025-07-13 22:00:14
-
-# updated 2025-07-13 22:09:14
-
-# updated 2025-07-13 23:07:46
-
-# updated 2025-07-16 21:48:48
+# updated 2025-07-17 20:12:19
