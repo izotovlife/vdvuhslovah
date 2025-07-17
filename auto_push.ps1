@@ -1,53 +1,53 @@
-# auto_push.ps1
-
-# auto_push.ps1
-
-# Перейти в каталог скрипта
-Set-Location -Path $PSScriptRoot
-
-# Очистка .pyc и __pycache__ директорий (без ошибок, если файлов нет)
-Get-ChildItem -Recurse -Include __pycache__, *.pyc -Force |
-    Where-Object { $_.FullName -notmatch '\\venv\\' } |
-    Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-
-# Проверка наличия изменений
-$gitStatus = git status --porcelain
-if (-not $gitStatus) {
-    Write-Host "✅ Нет изменений для коммита. Завершено." -ForegroundColor Green
-    exit
-}
-
-# Получить текущую дату и время
+# Получаем текущую дату и время
 $now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $commentLine = "# updated $now"
 
-# Найти .py файлы, исключая служебные директории
+Write-Host ">>> Start auto update at $now"
+
+# Находим все .py-файлы, кроме служебных директорий
 $files = Get-ChildItem -Recurse -Include *.py -File | Where-Object {
-    $_.FullName -notmatch '\\(migrations|venv|.git|.idea|.vscode|__pycache__)\\'
+    $_.FullName -notmatch '\\(venv|.git|.idea|__pycache__|migrations)\\'
 }
 
-# Добавить строку обновления, если её ещё нет
+$updatedFiles = @()
+
 foreach ($file in $files) {
-    $content = Get-Content $file.FullName -Raw
-    if ($content -notmatch [regex]::Escape($commentLine)) {
-        Add-Content -Path $file.FullName -Value "`n$commentLine"
+    $content = Get-Content $file.FullName
+    $found = $false
+
+    # Ищем и заменяем строку "# updated ..."
+    $newContent = $content | ForEach-Object {
+        if ($_ -match '^# updated ') {
+            $found = $true
+            return $commentLine
+        }
+        return $_
     }
+
+    # Если не нашли — добавим в конец
+    if (-not $found) {
+        $newContent += $commentLine
+    }
+
+    # Перезаписываем файл
+    Set-Content -Path $file.FullName -Value $newContent
+    $updatedFiles += $file.FullName
 }
 
-# Добавить все изменения в Git
-git add .
+# Проверяем, есть ли изменения
+$gitStatus = git status --porcelain
+if ($gitStatus) {
+    git add .
+    $commitMessage = "Auto commit with dummy update $now"
+    git commit -m $commitMessage
+    git push origin main
 
-# Показать список изменённых файлов
-Write-Host "`n📄 Изменённые файлы:" -ForegroundColor Cyan
-git diff --cached --name-only | ForEach-Object { Write-Host "• $_" }
+    # Добавляем запись в лог
+    "$now - PUSHED: $commitMessage" >> "push_log.txt"
+    Write-Host ">>> Changes committed and pushed to GitHub."
+} else {
+    "$now - SKIPPED: No changes found" >> "push_log.txt"
+    Write-Host ">>> No changes found. Nothing to commit."
+}
 
-# Определить текущую ветку
-$branch = git rev-parse --abbrev-ref HEAD
-
-# Коммит (если нет изменений, подавляем ошибку)
-git commit -m "Auto commit with dummy update $now" 2>$null
-
-# Push
-git push origin $branch
-
-Write-Host "`n✅ Изменения успешно отправлены на GitHub ($branch, $now)" -ForegroundColor Green
+Write-Host ">>> Done."
