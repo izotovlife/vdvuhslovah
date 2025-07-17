@@ -3,7 +3,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
-export default function CommentForm({ postId, onCommentCreated }) {
+export default function CommentForm({ postId, parentId = null, onCommentCreated }) {
   const { axiosInstance } = useContext(AuthContext);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,9 +14,11 @@ export default function CommentForm({ postId, onCommentCreated }) {
 
     setLoading(true);
     try {
-      const res = await axiosInstance.post(`/posts/${postId}/comments/`, {
-        content: content.trim(),
-      });
+      const payload = { content: content.trim() };
+      if (parentId) {
+        payload.parent = parentId;  // Добавляем parent, если это ответ на комментарий
+      }
+      const res = await axiosInstance.post(`/posts/${postId}/comments/`, payload);
       onCommentCreated(res.data);
       setContent('');
     } catch (error) {
@@ -30,7 +32,7 @@ export default function CommentForm({ postId, onCommentCreated }) {
     <form onSubmit={handleSubmit} style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
       <input
         type="text"
-        placeholder="Добавить комментарий..."
+        placeholder={parentId ? "Ответить на комментарий..." : "Добавить комментарий..."}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         disabled={loading}

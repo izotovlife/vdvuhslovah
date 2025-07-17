@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+import CommentsList from './CommentsList';  // Импортируем компонент вложенных комментариев
 import CommentForm from './CommentForm';
 import { Link } from 'react-router-dom';
 
@@ -16,7 +17,6 @@ export default function PostList() {
   const fetchPosts = async () => {
     try {
       const res = await axiosInstance.get('/posts/');
-      console.log('posts:', res.data);  // Для отладки — проверь данные
       setPosts(res.data);
     } catch (error) {
       console.error('Ошибка загрузки постов:', error);
@@ -27,17 +27,17 @@ export default function PostList() {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/like/`);
       const liked = res.data.liked;
-      const updatedPosts = posts.map(post => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            like_count: liked ? post.like_count + 1 : post.like_count - 1,
-            liked_by_user: liked,
-          };
-        }
-        return post;
-      });
-      setPosts(updatedPosts);
+      setPosts(prev =>
+        prev.map(post =>
+          post.id === postId
+            ? {
+                ...post,
+                like_count: liked ? post.like_count + 1 : post.like_count - 1,
+                liked_by_user: liked,
+              }
+            : post
+        )
+      );
     } catch (error) {
       console.error('Ошибка при лайке:', error);
     }
@@ -47,12 +47,13 @@ export default function PostList() {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/repost/`);
       if (res.status === 201) {
-        const updatedPosts = posts.map(post =>
-          post.id === postId
-            ? { ...post, repost_count: post.repost_count + 1 }
-            : post
+        setPosts(prev =>
+          prev.map(post =>
+            post.id === postId
+              ? { ...post, repost_count: post.repost_count + 1 }
+              : post
+          )
         );
-        setPosts(updatedPosts);
       }
     } catch (error) {
       console.error('Ошибка при репосте:', error);
@@ -123,15 +124,9 @@ export default function PostList() {
 
           <div style={{ marginTop: 12 }}>
             <h4>Комментарии:</h4>
-            {(post.comments || []).map(comment => (
-              <div key={comment.id} style={{ marginLeft: 16, marginBottom: 8 }}>
-                <strong>{comment.user.username}</strong>: {comment.content}
-              </div>
-            ))}
-            <CommentForm
-              postId={post.id}
-              onCommentCreated={(newComment) => handleNewComment(post.id, newComment)}
-            />
+            {/* Здесь используем CommentsList для вложенных комментариев */}
+            <CommentsList comments={post.comments || []} postId={post.id} onReplyAdded={(newComment) => handleNewComment(post.id, newComment)} />
+            <CommentForm postId={post.id} onCommentCreated={(newComment) => handleNewComment(post.id, newComment)} />
           </div>
         </div>
       ))}

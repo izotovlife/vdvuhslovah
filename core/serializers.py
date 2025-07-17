@@ -12,19 +12,24 @@ from .models import Profile, Post, Repost, Comment, Notification
 import random
 import string
 
+
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username')
 
+
 class SimplePostSerializer(serializers.ModelSerializer):
     author = SimpleUserSerializer(read_only=True)
+
     class Meta:
         model = Post
         fields = ('id', 'author', 'content', 'created_at')
 
+
 class SimpleRepostSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer(read_only=True)
+
     class Meta:
         model = Repost
         fields = ('id', 'user', 'created_at')
@@ -131,25 +136,43 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'email', 'name', 'profile')
+
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
+
+
+# Вложенный сериализатор для рекурсивного отображения ответов на комментарии
+class RecursiveField(serializers.Serializer):
+    def to_representation(self, value):
+        serializer = self.parent.parent.__class__(value, context=self.context)
+        return serializer.data
 
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     post_content = serializers.CharField(source='post.content', read_only=True)
     post_author = serializers.CharField(source='post.author.username', read_only=True)
+    parent = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.all(), allow_null=True, required=False)
+    replies = RecursiveField(many=True, read_only=True)
 
     class Meta:
         model = Comment
-        fields = ('id', 'user', 'post_content', 'post_author', 'content', 'created_at')
+        fields = (
+            'id', 'user', 'post_content', 'post_author',
+            'content', 'created_at', 'parent', 'replies'
+        )
         read_only_fields = ('id', 'user', 'created_at')
 
     def create(self, validated_data):
-        return Comment.objects.create(**validated_data)
+        user = self.context['request'].user
+        post = self.context['post']
+        parent = validated_data.get('parent', None)
+        content = validated_data['content']
+        return Comment.objects.create(user=user, post=post, content=content, parent=parent)
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -181,6 +204,7 @@ class PostSerializer(serializers.ModelSerializer):
 class RepostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     original_post = PostSerializer(read_only=True)
+
     class Meta:
         model = Repost
         fields = ('id', 'user', 'created_at', 'original_post')
@@ -259,10 +283,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class SendPasswordResetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Пользователь с таким email не найден.")
         return value
+
     def save(self, request=None):
         email = self.validated_data['email']
         user = User.objects.get(email=email)
@@ -282,6 +308,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(min_length=6)
+
     def validate(self, data):
         try:
             uid = force_str(urlsafe_base64_decode(data['uid']))
@@ -292,6 +319,7 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Недействительный или просроченный токен.")
         data['user'] = user
         return data
+
     def save(self):
         user = self.validated_data['user']
         user.set_password(self.validated_data['new_password'])
@@ -308,13 +336,3 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = '__all__'
-
-# updated 2025-07-13 21:53:56
-
-# updated 2025-07-13 22:00:14
-
-# updated 2025-07-13 22:09:14
-
-# updated 2025-07-13 23:07:46
-
-# updated 2025-07-13 23:32:13

@@ -1,5 +1,7 @@
 //C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\HomePage.js
 
+// frontend/src/pages/HomePage.js
+
 import React, { useEffect, useState, useContext } from 'react';
 import {
   Box,
@@ -21,6 +23,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
+
+import CommentsList from '../components/CommentsList'; // <-- добавлен импорт
 
 // Стили
 const PostPaper = styled(Paper)(({ theme }) => ({
@@ -60,14 +64,6 @@ const ActionsRow = styled('div')(({ theme }) => ({
 
 const CommentsSection = styled('div')(({ theme }) => ({
   marginTop: theme.spacing(2),
-}));
-
-const CommentPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(1),
-  marginBottom: theme.spacing(1),
-  borderRadius: theme.spacing(1),
-  backgroundColor: theme.palette.action.hover,
-  marginLeft: theme.spacing(3),
 }));
 
 const HomePage = () => {
@@ -350,18 +346,13 @@ const HomePage = () => {
                 </Button>
 
                 {showCommentsFor[post.id] && !loadingComments[post.id] && (
-                  <>
-                    {(commentsByPostId[post.id] || []).map((comment) => (
-                      <CommentPaper key={comment.id}>
-                        <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
-                          {comment.user.username}
-                        </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {comment.content}
-                        </Typography>
-                      </CommentPaper>
-                    ))}
-                  </>
+                  <CommentsList
+                    comments={commentsByPostId[post.id] || []}
+                    postId={post.id}
+                    onReplyAdded={async (newComment) => {
+                      await fetchComments(post.id);
+                    }}
+                  />
                 )}
               </CommentsSection>
             )}
