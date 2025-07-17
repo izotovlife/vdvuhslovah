@@ -1,5 +1,7 @@
 // frontend/src/pages/UserPage.js
 
+// frontend/src/pages/UserPage.js
+
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Box, Typography, Card, CardContent, Tabs, Tab } from '@mui/material';
 import { useParams } from 'react-router-dom';
@@ -79,14 +81,25 @@ export default function UserPage() {
   if (loadingUserInfo) return <div>Загрузка профиля...</div>;
   if (!userInfo) return <div>Пользователь не найден</div>;
 
+  // Формируем корректный URL аватара
+  const avatarPath = userInfo.profile?.avatar || '';
+  const avatarUrl = avatarPath
+    ? avatarPath.startsWith('/media/')
+      ? `http://localhost:8000${avatarPath}`
+      : `http://localhost:8000/media/${avatarPath}`
+    : 'http://localhost:8000/media/avatars/default-avatar.png';
+
   return (
     <Box sx={{ width: '100%', maxWidth: 800, margin: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <img
-          src={userInfo.profile?.avatar ? `http://localhost:8000${userInfo.profile.avatar}` : '/default-avatar.png'}
+          src={avatarUrl}
           alt="avatar"
           style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', marginRight: 16 }}
-          onError={e => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+          onError={e => {
+            e.target.onerror = null;
+            e.target.src = 'http://localhost:8000/media/avatars/default-avatar.png';
+          }}
         />
         <Box>
           <Typography variant="h4">{userInfo.username}</Typography>
