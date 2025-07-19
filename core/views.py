@@ -1,4 +1,20 @@
 # backend/core/views.py
+# Основные представления API для:
+# - регистрации и подтверждения email
+# - управления профилем
+# - работы с постами, комментариями (включая вложенные), лайками и репостами
+# - уведомлений
+# - смены и сброса пароля
+# - получения текущего пользователя и проверки пароля
+
+# backend/core/views.py
+# Основные представления API для:
+# - регистрации и подтверждения email
+# - управления профилем
+# - работы с постами, комментариями (включая вложенные), лайками и репостами
+# - уведомлений
+# - смены и сброса пароля
+# - получения текущего пользователя и проверки пароля
 
 from rest_framework import generics, permissions, status, mixins
 from rest_framework.views import APIView
@@ -98,14 +114,13 @@ class PostCommentListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        pid = self.kwargs['pk']
-        return Comment.objects.filter(post_id=pid).order_by('created_at')
+        post_id = self.kwargs['pk']
+        # Возвращаем только корневые комментарии (без родителя)
+        return Comment.objects.filter(post_id=post_id, parent=None).order_by('created_at')
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
-        # Передаем объект поста в контекст для сериализатора
-        post = get_object_or_404(Post, id=self.kwargs['pk'])
-        ctx['post'] = post
+        ctx['post'] = get_object_or_404(Post, id=self.kwargs['pk'])
         ctx['request'] = self.request
         return ctx
 
@@ -119,6 +134,7 @@ class PostCommentListCreateAPIView(generics.ListCreateAPIView):
             except Comment.DoesNotExist:
                 parent_comment = None
         serializer.save(user=self.request.user, post=post, parent=parent_comment)
+
 
 
 class PostRepostAPIView(APIView):

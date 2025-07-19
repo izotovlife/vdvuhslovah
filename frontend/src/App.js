@@ -1,7 +1,5 @@
 // frontend/src/App.js
 
-// frontend/src/App.js
-
 import React, { useContext } from 'react';
 import {
   BrowserRouter as Router,
@@ -20,6 +18,7 @@ import UserPage from './pages/UserPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
+import PostPage from './pages/PostPage';
 
 import AuthPage from './components/AuthPage';
 
@@ -42,7 +41,6 @@ function AppRoutes() {
 
   if (loading) return <div>Загрузка...</div>;
 
-  // Показывать Header только если не на странице /auth
   const showHeader = location.pathname !== '/auth';
 
   return (
@@ -57,7 +55,8 @@ function AppRoutes() {
         <Route path="/change-password" element={<PrivateRoute><ChangePasswordPage /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
 
-        <Route path="/user/:username" element={<UserPageWrapper />} />
+        <Route path="/user/:username" element={<PrivateRoute><UserPageWrapper /></PrivateRoute>} />
+        <Route path="/post/:postId" element={<PrivateRoute><PostPage /></PrivateRoute>} />
 
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

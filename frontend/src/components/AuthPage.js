@@ -1,8 +1,11 @@
 // src/components/AuthPage.js
+// Компонент авторизации и регистрации пользователя.
+// Позволяет переключаться между формой входа (LoginForm) и страницей регистрации (RegisterPage).
+// Обеспечивает красивый фон и центрирование форм по экрану.
 
 import React, { useState } from 'react';
 import LoginForm from './LoginForm';
-import RegisterPage from '../pages/RegisterPage'; // Импортируем именно RegisterPage
+import RegisterPage from '../pages/RegisterPage'; // Импорт страницы регистрации
 
 export default function AuthPage() {
   const [showLogin, setShowLogin] = useState(true);
@@ -11,7 +14,7 @@ export default function AuthPage() {
     <div
       style={{
         minHeight: '100vh',
-        backgroundImage: `url('/assets/moscow.jpg')`, // путь из public
+        backgroundImage: `url('/assets/moscow.jpg')`, // путь к изображению из папки public
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',
@@ -33,7 +36,7 @@ export default function AuthPage() {
         {showLogin ? (
           <LoginForm onSwitchToRegister={() => setShowLogin(false)} />
         ) : (
-          <RegisterPage onSwitchToLogin={() => setShowLogin(true)} />  // Используем RegisterPage
+          <RegisterPage onSwitchToLogin={() => setShowLogin(true)} />
         )}
       </div>
     </div>

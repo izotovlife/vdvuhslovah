@@ -1,176 +1,336 @@
 // frontend/src/pages/UserPage.js
 
-// frontend/src/pages/UserPage.js
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { Box, Typography, Card, CardContent, Tabs, Tab } from '@mui/material';
+import React, { useEffect, useState, useContext } from 'react';
+import {
+  Container,
+  Box,
+  Typography,
+  Avatar,
+  Paper,
+  Tab,
+  Tabs,
+  IconButton,
+  Tooltip,
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import CommentIcon from '@mui/icons-material/Comment';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import { useParams } from 'react-router-dom';
+import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
-    </div>
-  );
-}
+const UserInfoBox = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(2),
+  marginBottom: theme.spacing(3),
+}));
+
+const InfoText = styled('div')(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+}));
+
+const PostPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  borderRadius: theme.spacing(1.5),
+}));
+
+const ActionsRow = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  color: theme.palette.text.secondary,
+  marginTop: theme.spacing(1),
+}));
 
 export default function UserPage() {
   const { username } = useParams();
-  const [tabIndex, setTabIndex] = useState(0);
+  const { user, accessToken } = useContext(AuthContext);
+
+  // Проверяем, смотрит ли пользователь свой профиль
+  const isOwner = user && user.username === username;
+
+  // Добавляем токен в заголовки API
+  useEffect(() => {
+    if (accessToken) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+    }
+  }, [accessToken]);
+
+  const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState([]);
   const [reposts, setReposts] = useState([]);
   const [comments, setComments] = useState([]);
-  const [likedPosts, setLikedPosts] = useState([]);
-  const [userInfo, setUserInfo] = useState(null);
-  const [loadingUserInfo, setLoadingUserInfo] = useState(true);
-
-  const { user, axiosInstance } = useContext(AuthContext);
-  const isOwnProfile = user?.username === username;
-
-  // Загрузка профиля пользователя
-  useEffect(() => {
-    setLoadingUserInfo(true);
-    axiosInstance.get(`/users/${username}/`)
-      .then(res => setUserInfo(res.data))
-      .catch(() => setUserInfo(null))
-      .finally(() => setLoadingUserInfo(false));
-  }, [username, axiosInstance]);
-
-  // Загрузка данных для вкладок
-  const fetchPosts = useCallback(() => {
-    axiosInstance.get(`/users/${username}/posts/`)
-      .then(res => setPosts(res.data))
-      .catch(() => setPosts([]));
-  }, [username, axiosInstance]);
-
-  const fetchReposts = useCallback(() => {
-    axiosInstance.get(`/users/${username}/reposts/`)
-      .then(res => setReposts(res.data))
-      .catch(() => setReposts([]));
-  }, [username, axiosInstance]);
-
-  const fetchComments = useCallback(() => {
-    axiosInstance.get(`/users/${username}/comments/`)
-      .then(res => setComments(res.data))
-      .catch(() => setComments([]));
-  }, [username, axiosInstance]);
-
-  const fetchLikedPosts = useCallback(() => {
-    if (isOwnProfile) {
-      axiosInstance.get('/posts/liked/')
-        .then(res => setLikedPosts(res.data))
-        .catch(() => setLikedPosts([]));
-    }
-  }, [isOwnProfile, axiosInstance]);
+  const [tabIndex, setTabIndex] = useState(0);
 
   useEffect(() => {
     if (!username) return;
 
-    if (tabIndex === 0) fetchPosts();
-    else if (tabIndex === 1) fetchReposts();
-    else if (tabIndex === 2) fetchComments();
-    else if (tabIndex === 3) fetchLikedPosts();
-  }, [tabIndex, username, fetchPosts, fetchReposts, fetchComments, fetchLikedPosts]);
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get(`/users/${username}/profile/`);
+        setProfile(res.data);
+      } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+      }
+    };
 
-  const handleChange = (event, newValue) => {
+    const fetchUserPosts = async () => {
+      try {
+        const res = await api.get(`/users/${username}/posts/`);
+        setPosts(res.data);
+      } catch (error) {
+        console.error('Ошибка загрузки постов пользователя:', error);
+      }
+    };
+
+    const fetchLikedPosts = async () => {
+      try {
+        const res = await api.get(`/users/${username}/liked-posts/`);
+        setLikedPosts(res.data);
+      } catch (error) {
+        console.error('Ошибка загрузки понравившихся постов:', error);
+      }
+    };
+
+    const fetchReposts = async () => {
+      try {
+        const res = await api.get(`/users/${username}/reposts/`);
+        setReposts(res.data);
+      } catch (error) {
+        console.error('Ошибка загрузки репостов:', error);
+      }
+    };
+
+    const fetchComments = async () => {
+      try {
+        const res = await api.get(`/users/${username}/comments/`);
+        setComments(res.data);
+      } catch (error) {
+        console.error('Ошибка загрузки комментариев:', error);
+      }
+    };
+
+    fetchProfile();
+    fetchUserPosts();
+    fetchLikedPosts();
+    fetchReposts();
+    fetchComments();
+  }, [username]);
+
+  const handleTabChange = (event, newValue) => {
     setTabIndex(newValue);
   };
 
-  if (loadingUserInfo) return <div>Загрузка профиля...</div>;
-  if (!userInfo) return <div>Пользователь не найден</div>;
+  if (!profile) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography>Загрузка профиля...</Typography>
+      </Container>
+    );
+  }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 800, margin: 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <img
-          src={userInfo.profile?.avatar ? `http://localhost:8000${userInfo.profile.avatar}` : '/default-avatar.png'}
-          alt="avatar"
-          style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', marginRight: 16 }}
-          onError={e => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <UserInfoBox>
+        <Avatar
+          src={profile.avatar || ''}
+          alt={username}
+          sx={{ width: 80, height: 80 }}
         />
-        <Box>
-          <Typography variant="h4">{userInfo.username}</Typography>
-          <Typography variant="body1">{userInfo.profile?.bio || 'Биография отсутствует'}</Typography>
-        </Box>
-      </Box>
+        <InfoText>
+          <Typography variant="h5" fontWeight="bold">
+            {profile.full_name || username}
+          </Typography>
+          {isOwner && (
+            <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+              Это ваш профиль
+            </Typography>
+          )}
+          {profile.is_phone_public && profile.phone && (
+            <Typography variant="body2">Телефон: {profile.phone}</Typography>
+          )}
+          {profile.is_email_public && profile.email && (
+            <Typography variant="body2">Email: {profile.email}</Typography>
+          )}
+        </InfoText>
+      </UserInfoBox>
 
-      <Tabs value={tabIndex} onChange={handleChange} aria-label="user profile tabs">
-        <Tab label="Посты" />
+      <Tabs value={tabIndex} onChange={handleTabChange} aria-label="User tabs">
+        <Tab label="Публикации" />
+        <Tab label="Понравившиеся" />
         <Tab label="Репосты" />
         <Tab label="Комментарии" />
-        {isOwnProfile && <Tab label="Понравившиеся" />}
       </Tabs>
 
-      <TabPanel value={tabIndex} index={0}>
-        {posts.length === 0 ? (
-          <Typography>Посты не найдены</Typography>
-        ) : (
-          posts.map(post => (
-            <Card key={post.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="body1">{post.content}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Лайков: {post.like_count} | Комментариев: {post.comment_count} | Репостов: {post.repost_count}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </TabPanel>
-
-      <TabPanel value={tabIndex} index={1}>
-        {reposts.length === 0 ? (
-          <Typography>Репосты не найдены</Typography>
-        ) : (
-          reposts.map(repost => (
-            <Card key={repost.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="body2">Репост поста #{repost.original_post}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Сделан {new Date(repost.created_at).toLocaleString()}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </TabPanel>
-
-      <TabPanel value={tabIndex} index={2}>
-        {comments.length === 0 ? (
-          <Typography>Комментарии не найдены</Typography>
-        ) : (
-          comments.map(comment => (
-            <Card key={comment.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="body2">{comment.content}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Комментарий к посту #{comment.post}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </TabPanel>
-
-      {isOwnProfile && (
-        <TabPanel value={tabIndex} index={3}>
-          {likedPosts.length === 0 ? (
-            <Typography>Нет понравившихся постов</Typography>
+      <Box sx={{ mt: 2 }}>
+        {tabIndex === 0 &&
+          (posts.length === 0 ? (
+            <Typography>Публикаций нет.</Typography>
           ) : (
-            likedPosts.map(post => (
-              <Card key={post.id} sx={{ mb: 2 }}>
-                <CardContent>
-                  <Typography variant="body1">{post.content}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Лайков: {post.like_count} | Комментариев: {post.comment_count} | Репостов: {post.repost_count}
+            posts.map((post) => (
+              <PostPaper key={post.id}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {post.content}
+                </Typography>
+                <ActionsRow>
+                  <Tooltip title="Лайки">
+                    <IconButton size="small" disabled>
+                      <ThumbUpIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.like_count}</Typography>
+
+                  <Tooltip title="Репосты">
+                    <IconButton size="small" disabled>
+                      <RepeatIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.repost_count || 0}</Typography>
+
+                  <Tooltip title="Комментарии">
+                    <IconButton size="small" disabled>
+                      <CommentIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.comment_count || 0}</Typography>
+
+                  <Typography variant="caption" sx={{ marginLeft: 'auto' }}>
+                    {post.created_at
+                      ? formatDistanceToNow(new Date(post.created_at), {
+                          addSuffix: true,
+                          locale: ru,
+                        })
+                      : ''}
                   </Typography>
-                </CardContent>
-              </Card>
+                </ActionsRow>
+              </PostPaper>
             ))
-          )}
-        </TabPanel>
-      )}
-    </Box>
+          ))}
+
+        {tabIndex === 1 &&
+          (likedPosts.length === 0 ? (
+            <Typography>Нет понравившихся публикаций.</Typography>
+          ) : (
+            likedPosts.map((post) => (
+              <PostPaper key={post.id}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {post.content}
+                </Typography>
+                <ActionsRow>
+                  <Tooltip title="Лайки">
+                    <IconButton size="small" disabled>
+                      <ThumbUpIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.like_count}</Typography>
+
+                  <Tooltip title="Репосты">
+                    <IconButton size="small" disabled>
+                      <RepeatIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.repost_count || 0}</Typography>
+
+                  <Tooltip title="Комментарии">
+                    <IconButton size="small" disabled>
+                      <CommentIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.comment_count || 0}</Typography>
+
+                  <Typography variant="caption" sx={{ marginLeft: 'auto' }}>
+                    {post.created_at
+                      ? formatDistanceToNow(new Date(post.created_at), {
+                          addSuffix: true,
+                          locale: ru,
+                        })
+                      : ''}
+                  </Typography>
+                </ActionsRow>
+              </PostPaper>
+            ))
+          ))}
+
+        {tabIndex === 2 &&
+          (reposts.length === 0 ? (
+            <Typography>Нет репостов.</Typography>
+          ) : (
+            reposts.map((post) => (
+              <PostPaper key={post.id}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {post.content}
+                </Typography>
+                <ActionsRow>
+                  <Tooltip title="Лайки">
+                    <IconButton size="small" disabled>
+                      <ThumbUpIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.like_count}</Typography>
+
+                  <Tooltip title="Репосты">
+                    <IconButton size="small" disabled>
+                      <RepeatIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.repost_count || 0}</Typography>
+
+                  <Tooltip title="Комментарии">
+                    <IconButton size="small" disabled>
+                      <CommentIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption">{post.comment_count || 0}</Typography>
+
+                  <Typography variant="caption" sx={{ marginLeft: 'auto' }}>
+                    {post.created_at
+                      ? formatDistanceToNow(new Date(post.created_at), {
+                          addSuffix: true,
+                          locale: ru,
+                        })
+                      : ''}
+                  </Typography>
+                </ActionsRow>
+              </PostPaper>
+            ))
+          ))}
+
+        {tabIndex === 3 &&
+          (comments.length === 0 ? (
+            <Typography>Нет комментариев.</Typography>
+          ) : (
+            comments.map((comment) => (
+              <PostPaper key={comment.id}>
+                <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                  К публикации: {comment.post_content?.slice(0, 50) || '—'}
+                </Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {comment.content}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ marginLeft: 'auto', display: 'block', mt: 1 }}
+                >
+                  {comment.created_at
+                    ? formatDistanceToNow(new Date(comment.created_at), {
+                        addSuffix: true,
+                        locale: ru,
+                      })
+                    : ''}
+                </Typography>
+              </PostPaper>
+            ))
+          ))}
+      </Box>
+    </Container>
   );
 }

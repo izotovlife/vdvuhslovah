@@ -1,4 +1,7 @@
-//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\components\CommentsList.js
+// frontend/src/components/CommentsList.js
+// Компонент для отображения списка комментариев к посту в виде древовидной структуры,
+// включая вложенные ответы (комментарии к комментариям).
+// Принимает плоский массив комментариев, преобразует его в дерево и рендерит каждую ветвь с помощью CommentItem.
 
 import React from 'react';
 import CommentItem from './CommentItem';
@@ -32,7 +35,12 @@ export default function CommentsList({ comments, postId, onReplyAdded }) {
   return (
     <div>
       {tree.map(comment => (
-        <CommentItem key={comment.id} comment={comment} postId={postId} onReplyAdded={onReplyAdded} />
+        <CommentItem
+          key={comment.id}
+          comment={comment}
+          postId={postId}
+          onReplyAdded={onReplyAdded}
+        />
       ))}
     </div>
   );

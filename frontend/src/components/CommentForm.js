@@ -1,4 +1,8 @@
-// frontend/src/components/CommentForm.js
+// CommentForm.js
+// Форма для добавления нового комментария или ответа на существующий комментарий к посту.
+// Принимает ID поста и необязательный parentId (если это ответ).
+// Отправляет данные на сервер через axios из контекста авторизации.
+// После успешной отправки вызывает onCommentCreated с данными нового комментария.
 
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';

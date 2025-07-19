@@ -1,7 +1,5 @@
 //C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\HomePage.js
 
-// frontend/src/pages/HomePage.js
-
 import React, { useEffect, useState, useContext } from 'react';
 import {
   Box,
@@ -13,6 +11,7 @@ import {
   IconButton,
   Tooltip,
   Avatar,
+  Link,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
@@ -23,8 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
-
-import CommentsList from '../components/CommentsList'; // <-- добавлен импорт
+import { useNavigate } from 'react-router-dom';
 
 // Стили
 const PostPaper = styled(Paper)(({ theme }) => ({
@@ -53,6 +51,7 @@ const PostContent = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.primary,
   fontSize: '1.15rem',
   lineHeight: 1.5,
+  cursor: 'pointer', // Для кликабельности публикации
 }));
 
 const ActionsRow = styled('div')(({ theme }) => ({
@@ -66,8 +65,17 @@ const CommentsSection = styled('div')(({ theme }) => ({
   marginTop: theme.spacing(2),
 }));
 
+const CommentPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(1),
+  backgroundColor: theme.palette.action.hover,
+  marginLeft: theme.spacing(3),
+}));
+
 const HomePage = () => {
   const { user, accessToken } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [popularPosts, setPopularPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,6 +223,16 @@ const HomePage = () => {
     }));
   };
 
+  // Переход на страницу пользователя
+  const goToUserPage = (username) => {
+    navigate(`/user/${username}`);
+  };
+
+  // Переход на страницу публикации (можно сделать, если есть такая страница)
+  const goToPostPage = (postId) => {
+    navigate(`/post/${postId}`);
+  };
+
   if (loading) {
     return (
       <Container sx={{ mt: 4 }}>
@@ -252,10 +270,16 @@ const HomePage = () => {
               <Avatar
                 src={post.author?.profile?.avatar || ''}
                 alt={post.author_username}
-                sx={{ width: 36, height: 36 }}
+                sx={{ width: 36, height: 36, cursor: 'pointer' }}
+                onClick={() => goToUserPage(post.author_username)}
               />
               <Box>
-                <Typography variant="subtitle2" fontWeight="bold">
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => goToUserPage(post.author_username)}
+                >
                   {post.author_username}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -269,7 +293,12 @@ const HomePage = () => {
               </Box>
             </AuthorInfo>
 
-            <PostContent variant="body1">{post.content}</PostContent>
+            <PostContent
+              variant="body1"
+              onClick={() => goToPostPage(post.id)}
+            >
+              {post.content}
+            </PostContent>
 
             <ActionsRow>
               <Tooltip title="Лайк">
@@ -346,13 +375,18 @@ const HomePage = () => {
                 </Button>
 
                 {showCommentsFor[post.id] && !loadingComments[post.id] && (
-                  <CommentsList
-                    comments={commentsByPostId[post.id] || []}
-                    postId={post.id}
-                    onReplyAdded={async (newComment) => {
-                      await fetchComments(post.id);
-                    }}
-                  />
+                  <>
+                    {(commentsByPostId[post.id] || []).map((comment) => (
+                      <CommentPaper key={comment.id}>
+                        <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
+                          {comment.user.username}
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {comment.content}
+                        </Typography>
+                      </CommentPaper>
+                    ))}
+                  </>
                 )}
               </CommentsSection>
             )}
@@ -369,30 +403,92 @@ const HomePage = () => {
         ) : (
           popularPosts.map((post) => (
             <PostPaper key={post.id} elevation={2} sx={{ p: 2 }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                {post.author_username}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {post.created_at
-                  ? formatDistanceToNow(new Date(post.created_at), {
-                      addSuffix: true,
-                      locale: ru,
-                    })
-                  : ''}
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                {post.content.length > 120
-                  ? post.content.slice(0, 120) + '...'
-                  : post.content}
-              </Typography>
+              <Box
+                sx={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+                onClick={() => goToPostPage(post.id)}
+              >
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5, cursor: 'default' }}>
+                  <Link
+                    component="button"
+                    variant="subtitle2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToUserPage(post.author_username);
+                    }}
+                    sx={{ cursor: 'pointer', color: 'inherit', textDecoration: 'underline' }}
+                  >
+                    {post.author_username}
+                  </Link>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {post.created_at
+                    ? formatDistanceToNow(new Date(post.created_at), {
+                        addSuffix: true,
+                        locale: ru,
+                      })
+                    : ''}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  {post.content.length > 120
+                    ? post.content.slice(0, 120) + '...'
+                    : post.content}
+                </Typography>
+              </Box>
               <ActionsRow sx={{ mt: 1 }}>
-                <ThumbUpIcon sx={{ fontSize: 18 }} />
+                <Tooltip title="Лайк">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLike(post.id);
+                    }}
+                    color={post.liked_by_user ? 'primary' : 'default'}
+                  >
+                    <ThumbUpIcon />
+                  </IconButton>
+                </Tooltip>
                 <Typography variant="caption">{post.like_count}</Typography>
-                <RepeatIcon sx={{ fontSize: 18, ml: 1 }} />
+
+                <Tooltip title="Репост">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRepost(post.id);
+                    }}
+                  >
+                    <RepeatIcon />
+                  </IconButton>
+                </Tooltip>
                 <Typography variant="caption">{post.repost_count || 0}</Typography>
-                <CommentIcon sx={{ fontSize: 18, ml: 1 }} />
+
+                <Tooltip title="Комментарии">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleComments(post.id);
+                    }}
+                  >
+                    <CommentIcon />
+                  </IconButton>
+                </Tooltip>
                 <Typography variant="caption">{post.comment_count || 0}</Typography>
               </ActionsRow>
+              {showCommentsFor[post.id] && !loadingComments[post.id] && (
+                <CommentsSection sx={{ mt: 1 }}>
+                  {(commentsByPostId[post.id] || []).map((comment) => (
+                    <CommentPaper key={comment.id}>
+                      <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
+                        {comment.user.username}
+                      </Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {comment.content}
+                      </Typography>
+                    </CommentPaper>
+                  ))}
+                </CommentsSection>
+              )}
             </PostPaper>
           ))
         )}

@@ -1,7 +1,13 @@
-#C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\core\serializers.py
+# backend/core/serializers.py
+# Сериализаторы для API, включая:
+# - Пользователей и профили
+# - Посты, репосты и комментарии (вложенные комментарии поддерживаются рекурсивно)
+# - Регистрацию с подтверждением email
+# - Сброс и смену пароля
+# - Уведомления
+# - Другие вспомогательные сериализаторы
 
-from rest_framework import serializers
-from django.contrib.auth.models import User
+# backend/core/serializers.py
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -11,6 +17,38 @@ from .models import Profile, Post, Repost, Comment, Notification
 
 import random
 import string
+
+from rest_framework import serializers
+from django.contrib.auth.models import User
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
+
+class RecursiveField(serializers.Serializer):
+    def to_representation(self, value):
+        serializer = self.parent.parent.__class__(value, context=self.context)
+        return serializer.data
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    replies = RecursiveField(many=True, read_only=True)
+    # остальные поля...
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'content', 'created_at', 'parent', 'replies']
+
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        post = self.context.get('post')
+        parent = validated_data.get('parent', None)
+        content = validated_data['content']
+        return Comment.objects.create(user=user, post=post, content=content, parent=parent)
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
@@ -143,36 +181,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
-
-
-# Вложенный сериализатор для рекурсивного отображения ответов на комментарии
-class RecursiveField(serializers.Serializer):
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-
-class CommentSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    post_content = serializers.CharField(source='post.content', read_only=True)
-    post_author = serializers.CharField(source='post.author.username', read_only=True)
-    parent = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.all(), allow_null=True, required=False)
-    replies = RecursiveField(many=True, read_only=True)
-
-    class Meta:
-        model = Comment
-        fields = (
-            'id', 'user', 'post_content', 'post_author',
-            'content', 'created_at', 'parent', 'replies'
-        )
-        read_only_fields = ('id', 'user', 'created_at')
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        post = self.context['post']
-        parent = validated_data.get('parent', None)
-        content = validated_data['content']
-        return Comment.objects.create(user=user, post=post, content=content, parent=parent)
 
 
 class PostSerializer(serializers.ModelSerializer):
