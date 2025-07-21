@@ -1,5 +1,9 @@
 //C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\HomePage.js
 
+// ✅ frontend/src/pages/HomePage.js
+// Основная страница приложения. Показывает список постов, форму для создания постов,
+// позволяет просматривать и комментировать посты. Подключает вложенные комментарии через CommentsList.
+
 import React, { useEffect, useState, useContext } from 'react';
 import {
   Box,
@@ -23,8 +27,8 @@ import { ru } from 'date-fns/locale';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { useNavigate } from 'react-router-dom';
+import CommentsList from '../components/CommentsList';
 
-// Стили
 const PostPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   marginBottom: theme.spacing(3),
@@ -51,7 +55,7 @@ const PostContent = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.primary,
   fontSize: '1.15rem',
   lineHeight: 1.5,
-  cursor: 'pointer', // Для кликабельности публикации
+  cursor: 'pointer',
 }));
 
 const ActionsRow = styled('div')(({ theme }) => ({
@@ -63,14 +67,6 @@ const ActionsRow = styled('div')(({ theme }) => ({
 
 const CommentsSection = styled('div')(({ theme }) => ({
   marginTop: theme.spacing(2),
-}));
-
-const CommentPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(1),
-  marginBottom: theme.spacing(1),
-  borderRadius: theme.spacing(1),
-  backgroundColor: theme.palette.action.hover,
-  marginLeft: theme.spacing(3),
 }));
 
 const HomePage = () => {
@@ -189,29 +185,6 @@ const HomePage = () => {
     }
   };
 
-  const handleAddComment = async (postId) => {
-    const text = newCommentTextByPostId[postId];
-    if (!text || !text.trim()) return;
-
-    if (!accessToken) {
-      alert('Для комментирования нужно войти в аккаунт');
-      return;
-    }
-
-    try {
-      await api.post(
-        `/posts/${postId}/comments/`,
-        { content: text },
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      await fetchComments(postId);
-      setNewCommentTextByPostId((prev) => ({ ...prev, [postId]: '' }));
-      setShowCommentInputFor((prev) => ({ ...prev, [postId]: false }));
-    } catch (error) {
-      console.error('Ошибка добавления комментария:', error);
-    }
-  };
-
   const toggleCommentInput = (postId) => {
     if (!user) {
       alert('Войдите в аккаунт, чтобы добавлять комментарии');
@@ -223,12 +196,10 @@ const HomePage = () => {
     }));
   };
 
-  // Переход на страницу пользователя
   const goToUserPage = (username) => {
     navigate(`/user/${username}`);
   };
 
-  // Переход на страницу публикации (можно сделать, если есть такая страница)
   const goToPostPage = (postId) => {
     navigate(`/post/${postId}`);
   };
@@ -334,31 +305,6 @@ const HomePage = () => {
               </Typography>
             </ActionsRow>
 
-            {showCommentInputFor[post.id] && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                <TextField
-                  size="small"
-                  placeholder="Напишите комментарий..."
-                  value={newCommentTextByPostId[post.id] || ''}
-                  onChange={(e) =>
-                    setNewCommentTextByPostId((prev) => ({
-                      ...prev,
-                      [post.id]: e.target.value,
-                    }))
-                  }
-                  fullWidth
-                />
-                <Button
-                  variant="contained"
-                  size="small"
-                  endIcon={<SendIcon />}
-                  onClick={() => handleAddComment(post.id)}
-                >
-                  Отправить
-                </Button>
-              </Box>
-            )}
-
             {post.comment_count > 0 && (
               <CommentsSection>
                 <Button
@@ -375,18 +321,11 @@ const HomePage = () => {
                 </Button>
 
                 {showCommentsFor[post.id] && !loadingComments[post.id] && (
-                  <>
-                    {(commentsByPostId[post.id] || []).map((comment) => (
-                      <CommentPaper key={comment.id}>
-                        <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
-                          {comment.user.username}
-                        </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                          {comment.content}
-                        </Typography>
-                      </CommentPaper>
-                    ))}
-                  </>
+                  <CommentsList
+                    comments={commentsByPostId[post.id] || []}
+                    postId={post.id}
+                    onReplyAdded={() => fetchComments(post.id)}
+                  />
                 )}
               </CommentsSection>
             )}
@@ -477,16 +416,11 @@ const HomePage = () => {
               </ActionsRow>
               {showCommentsFor[post.id] && !loadingComments[post.id] && (
                 <CommentsSection sx={{ mt: 1 }}>
-                  {(commentsByPostId[post.id] || []).map((comment) => (
-                    <CommentPaper key={comment.id}>
-                      <Typography variant="body2" fontWeight="bold" sx={{ mb: 0.3 }}>
-                        {comment.user.username}
-                      </Typography>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                        {comment.content}
-                      </Typography>
-                    </CommentPaper>
-                  ))}
+                  <CommentsList
+                    comments={commentsByPostId[post.id] || []}
+                    postId={post.id}
+                    onReplyAdded={() => fetchComments(post.id)}
+                  />
                 </CommentsSection>
               )}
             </PostPaper>

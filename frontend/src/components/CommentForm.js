@@ -4,6 +4,9 @@
 // Отправляет данные на сервер через axios из контекста авторизации.
 // После успешной отправки вызывает onCommentCreated с данными нового комментария.
 
+// Компонент формы для добавления комментария или ответа к комментарию.
+// Используется внутри CommentItem и может применяться отдельно для поста.
+
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
@@ -20,7 +23,7 @@ export default function CommentForm({ postId, parentId = null, onCommentCreated 
     try {
       const payload = { content: content.trim() };
       if (parentId) {
-        payload.parent = parentId;  // Добавляем parent, если это ответ на комментарий
+        payload.parent = parentId;
       }
       const res = await axiosInstance.post(`/posts/${postId}/comments/`, payload);
       onCommentCreated(res.data);

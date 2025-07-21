@@ -1,7 +1,6 @@
 // CommentItem.js
-// Компонент для отображения одного комментария и его ответов (вложенных комментариев).
-// Поддерживает возможность ответить на комментарий и рекурсивно отображает дочерние ответы.
-// Используется в списке комментариев к посту.
+// Компонент для отображения одного комментария и его вложенных ответов.
+// Использует рекурсию для построения дерева.
 
 import React, { useState } from 'react';
 import CommentForm from './CommentForm';
@@ -12,7 +11,7 @@ export default function CommentItem({ comment, postId, onReplyAdded }) {
 
   const handleReplyCreated = (newComment) => {
     setShowReplyForm(false);
-    setReplies([...replies, newComment]);  // добавляем новый ответ
+    setReplies([...replies, newComment]);
   };
 
   return (
@@ -60,7 +59,7 @@ export default function CommentItem({ comment, postId, onReplyAdded }) {
               comment={reply}
               postId={postId}
               onReplyAdded={(newReply) => {
-                setReplies([...replies, newReply]); // добавляем вложенный ответ
+                setReplies([...replies, newReply]);
               }}
             />
           ))}
