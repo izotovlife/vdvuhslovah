@@ -1,31 +1,50 @@
 # backend/core/serializers.py
-# Сериализаторы для API, включая:
-# - Пользователей и профили
-# - Посты, репосты и комментарии (вложенные комментарии поддерживаются рекурсивно)
-# - Регистрацию с подтверждением email
-# - Сброс и смену пароля
-# - Уведомления
-# - Другие вспомогательные сериализаторы
+#
+# Сериализаторы для API приложения "Аналог Твиттера":
+# - Пользователи и расширенные профили с аватаром, баннером, подписками
+# - Посты с поддержкой лайков, репостов, комментариев, цитат (quoted_post)
+# - Комментарии с рекурсивной вложенностью (ответы на комментарии)
+# - Репосты и избранное
+# - Регистрация с подтверждением email и автогенерацией пароля
+# - Сброс и смена пароля с проверкой токенов
+# - Уведомления о лайках, комментариях и репостах
+#
+# Поддерживается контекст запроса для корректного формирования ссылок и проверки действий текущего пользователя
 
-# backend/core/serializers.py
+
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import Profile, Post, Repost, Comment, Notification
+from django.contrib.auth.models import User
 
 import random
 import string
-
 from rest_framework import serializers
-from django.contrib.auth.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username']
+        fields = ['id', 'username', 'avatar', 'display_name']
+
+    def get_avatar(self, obj):
+        try:
+            return obj.profile.avatar.url if obj.profile.avatar else None
+        except Exception:
+            return None
+
+    def get_display_name(self, obj):
+        try:
+            full_name = obj.get_full_name()
+            return full_name if full_name else obj.username
+        except Exception:
+            return obj.username
 
 
 class RecursiveField(serializers.Serializer):
@@ -33,15 +52,14 @@ class RecursiveField(serializers.Serializer):
         serializer = self.parent.parent.__class__(value, context=self.context)
         return serializer.data
 
+
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     replies = RecursiveField(many=True, read_only=True)
-    # остальные поля...
 
     class Meta:
         model = Comment
         fields = ['id', 'user', 'content', 'created_at', 'parent', 'replies']
-
 
     def create(self, validated_data):
         user = self.context['request'].user
@@ -83,6 +101,9 @@ class ProfileSerializer(serializers.ModelSerializer):
     posts = serializers.SerializerMethodField()
     reposts = serializers.SerializerMethodField()
     liked_posts = serializers.SerializerMethodField()
+    followers_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
+    is_followed_by_user = serializers.SerializerMethodField()
     country = serializers.CharField(read_only=True)
     city = serializers.CharField(read_only=True)
     bio = serializers.CharField(read_only=True)
@@ -94,7 +115,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'id', 'avatar', 'banner', 'bio', 'phone',
             'name', 'email', 'first_name', 'last_name',
             'country', 'city',
-            'posts', 'reposts', 'liked_posts'
+            'posts', 'reposts', 'liked_posts',
+            'followers_count', 'following_count', 'is_followed_by_user',
         )
 
     def get_avatar(self, obj):
@@ -120,6 +142,27 @@ class ProfileSerializer(serializers.ModelSerializer):
     def get_liked_posts(self, obj):
         qs = Post.objects.filter(likes=obj.user).order_by('-created_at')
         return SimplePostSerializer(qs, many=True, context=self.context).data
+
+    def get_followers_count(self, obj):
+        try:
+            return obj.user.followers.count()
+        except Exception:
+            return 0
+
+    def get_following_count(self, obj):
+        try:
+            return obj.user.following.count()
+        except Exception:
+            return 0
+
+    def get_is_followed_by_user(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        try:
+            return obj.user.followers.filter(follower=request.user).exists()
+        except Exception:
+            return False
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
@@ -171,7 +214,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserWithProfileSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     name = serializers.SerializerMethodField()
 
@@ -184,26 +227,34 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
-    author = UserSerializer(read_only=True)
+    author = UserWithProfileSerializer(read_only=True)
     author_username = serializers.CharField(source='author.username', read_only=True)
     like_count = serializers.IntegerField(read_only=True)
     comment_count = serializers.IntegerField(read_only=True)
     repost_count = serializers.IntegerField(read_only=True)
     liked_by_user = serializers.SerializerMethodField()
+    reposted_by_user = serializers.SerializerMethodField()
     comments = CommentSerializer(many=True, read_only=True)
     reposts = serializers.SerializerMethodField()
+    quoted_post = SimplePostSerializer(read_only=True)  # если есть поле quoted_post в модели
 
     class Meta:
         model = Post
         fields = (
             'id', 'author', 'author_username', 'content', 'created_at',
             'like_count', 'comment_count', 'repost_count', 'liked_by_user',
-            'comments', 'reposts'
+            'reposted_by_user', 'comments', 'reposts', 'quoted_post',
         )
 
     def get_liked_by_user(self, obj):
-        req = self.context.get('request')
-        return req.user.is_authenticated and obj.likes.filter(id=req.user.id).exists()
+        request = self.context.get('request')
+        return request.user.is_authenticated and obj.likes.filter(id=request.user.id).exists()
+
+    def get_reposted_by_user(self, obj):
+        request = self.context.get('request')
+        if not request.user.is_authenticated:
+            return False
+        return obj.reposts.filter(user=request.user).exists()
 
     def get_reposts(self, obj):
         return obj.reposts.values('id')
@@ -344,3 +395,56 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = '__all__'
+
+
+class PublicProfileSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    bio = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = ['id', 'name', 'avatar', 'bio']
+
+    def get_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
+
+
+class FullProfileSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    banner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Profile
+        fields = [
+            'id', 'user', 'avatar', 'banner', 'bio', 'phone',
+            'country', 'city',
+        ]
+
+    def get_user(self, obj):
+        user = obj.user
+        return {
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar and hasattr(obj.avatar, 'url'):
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
+
+    def get_banner(self, obj):
+        request = self.context.get('request')
+        if obj.banner and hasattr(obj.banner, 'url'):
+            return request.build_absolute_uri(obj.banner.url) if request else obj.banner.url
+        return None

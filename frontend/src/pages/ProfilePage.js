@@ -1,8 +1,19 @@
 // frontend/src/pages/ProfilePage.js
+//
+// Страница профиля пользователя с функционалом:
+// - Просмотр и редактирование профиля (имя, email, телефон, город, аватар, баннер)
+// - Вкладки "Основное" и "Активность" с подвкладками публикаций, репостов и понравившихся
+// - Загрузка и предпросмотр изображений аватара и баннера
+// - Подписка/отписка на пользователя с отображением количества подписчиков и подписок
+// - Удаление профиля с подтверждением
+// - Уведомления через Snackbar
+//
+// Использует контекст AuthContext для API запросов и глобального обновления пользователя.
+// Поддерживает пагинацию и обновление состояния подписок.
 
 import React, { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -18,7 +29,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton
+  IconButton,
+  CircularProgress,
 } from '@mui/material';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 
@@ -38,11 +50,13 @@ function TabPanel(props) {
 }
 
 export default function ProfilePage() {
-  const { axiosInstance, updateUser } = useContext(AuthContext); // <-- добавил updateUser
+  const { axiosInstance, user: currentUser, updateUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { username } = useParams(); // получаем имя пользователя из URL (например /profile/:username)
 
   const [tabIndex, setTabIndex] = useState(0);
   const [activityTab, setActivityTab] = useState(0);
+
   const [profile, setProfile] = useState({});
   const [editData, setEditData] = useState({
     first_name: '',
@@ -53,25 +67,106 @@ export default function ProfilePage() {
   });
   const [file, setFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
+
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingFollow, setLoadingFollow] = useState(false);
+
   const [snackMessage, setSnackMessage] = useState('');
   const [snackOpen, setSnackOpen] = useState(false);
+
   const [openConfirm, setOpenConfirm] = useState(false);
 
+  // Подписка/статус подписки
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
+  // Пагинация для постов, репостов, лайков
+  const [postsPage, setPostsPage] = useState(1);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsHasMore, setPostsHasMore] = useState(true);
+
+  const [posts, setPosts] = useState([]);
+  const [reposts, setReposts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState([]);
+
   useEffect(() => {
-    axiosInstance.get('/profile/')
+    setLoadingProfile(true);
+    // Получаем профиль пользователя (по username или текущий)
+    const url = username ? `/users/${username}/profile/` : '/profile/';
+    axiosInstance.get(url)
       .then(res => {
-        setProfile(res.data);
-        setEditData({
-          first_name: res.data.first_name || '',
-          last_name: res.data.last_name || '',
-          email: res.data.email || '',
-          phone: res.data.phone || '',
-          city: res.data.city || '',
-        });
+        const data = res.data;
+        setProfile(data);
+        // Если это текущий пользователь — заполняем поля редактирования
+        if (!username || currentUser?.username === username) {
+          setEditData({
+            first_name: data.first_name || '',
+            last_name: data.last_name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            city: data.city || '',
+          });
+        }
+
+        // Подписки
+        setIsFollowing(data.is_following || false);
+        setFollowersCount(data.followers_count || 0);
+        setFollowingCount(data.following_count || 0);
+
+        setPosts(data.posts || []);
+        setReposts(data.reposts || []);
+        setLikedPosts(data.liked_posts || []);
       })
-      .catch(console.error);
-  }, [axiosInstance]);
+      .catch(err => {
+        console.error(err);
+        setSnackMessage('Ошибка при загрузке профиля');
+        setSnackOpen(true);
+      })
+      .finally(() => setLoadingProfile(false));
+  }, [axiosInstance, username, currentUser]);
+
+  // Обработчик подписки/отписки
+  const handleFollowToggle = () => {
+    if (!currentUser) {
+      setSnackMessage('Войдите, чтобы подписаться');
+      setSnackOpen(true);
+      return;
+    }
+    setLoadingFollow(true);
+
+    const url = `/users/${profile.user?.username}/follow-toggle/`; // нужно реализовать на бекенде
+    axiosInstance.post(url)
+      .then(res => {
+        setIsFollowing(res.data.is_following);
+        setFollowersCount(res.data.followers_count);
+        setSnackMessage(res.data.is_following ? 'Вы подписались' : 'Вы отписались');
+        setSnackOpen(true);
+      })
+      .catch(() => {
+        setSnackMessage('Ошибка при изменении подписки');
+        setSnackOpen(true);
+      })
+      .finally(() => setLoadingFollow(false));
+  };
+
+  // Загрузка следующей страницы публикаций (пагинация)
+  const loadMorePosts = () => {
+    if (postsLoading || !postsHasMore) return;
+    setPostsLoading(true);
+    axiosInstance.get(`/users/${profile.user?.username}/posts/?page=${postsPage + 1}`)
+      .then(res => {
+        setPosts(prev => [...prev, ...res.data.results]);
+        setPostsPage(prev => prev + 1);
+        setPostsHasMore(res.data.next !== null);
+      })
+      .catch(() => {
+        setSnackMessage('Ошибка при загрузке публикаций');
+        setSnackOpen(true);
+      })
+      .finally(() => setPostsLoading(false));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -102,7 +197,7 @@ export default function ProfilePage() {
     axiosInstance.put('/profile/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       .then(res => {
         setProfile(res.data);
-        updateUser(res.data);  // <-- обновляем глобальный user в контексте!
+        updateUser(res.data);
         setLoading(false);
         setSnackMessage('Профиль успешно обновлен');
         setSnackOpen(true);
@@ -123,7 +218,10 @@ export default function ProfilePage() {
   const handleDelete = () => {
     axiosInstance.delete('/profile/')
       .then(() => window.location.href = '/goodbye')
-      .catch(console.error);
+      .catch(() => {
+        setSnackMessage('Ошибка при удалении профиля');
+        setSnackOpen(true);
+      });
   };
 
   const handleTabChange = (event, newValue) => {
@@ -134,8 +232,17 @@ export default function ProfilePage() {
     setActivityTab(newValue);
   };
 
+  if (loadingProfile) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="sm" sx={{ mt: 4 }}>
+      {/* Баннер */}
       <Box
         sx={{
           position: 'relative',
@@ -145,93 +252,138 @@ export default function ProfilePage() {
           backgroundPosition: 'center',
           borderRadius: 2,
           mb: -10,
-          cursor: 'pointer'
+          cursor: username ? 'default' : 'pointer', // нельзя менять чужой баннер
+          filter: username && username !== currentUser?.username ? 'grayscale(30%)' : 'none',
         }}
-        onClick={() => document.getElementById('banner-input').click()}
+        onClick={() => !username && document.getElementById('banner-input').click()}
       >
-        <input
-          type="file"
-          accept="image/*"
-          id="banner-input"
-          style={{ display: 'none' }}
-          onChange={handleBannerChange}
-        />
-        <IconButton
-          sx={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.7)' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            document.getElementById('banner-input').click();
-          }}
-        >
-          <PhotoCamera />
-        </IconButton>
+        {!username && (
+          <>
+            <input
+              type="file"
+              accept="image/*"
+              id="banner-input"
+              style={{ display: 'none' }}
+              onChange={handleBannerChange}
+            />
+            <IconButton
+              sx={{ position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.7)' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                document.getElementById('banner-input').click();
+              }}
+            >
+              <PhotoCamera />
+            </IconButton>
+          </>
+        )}
       </Box>
 
+      {/* Аватар и имя */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexDirection: 'column', position: 'relative' }}>
         <Box
-          sx={{ position: 'relative', cursor: 'pointer' }}
-          onClick={() => document.getElementById('avatar-input').click()}
+          sx={{
+            position: 'relative',
+            cursor: username ? 'default' : 'pointer',
+            filter: username && username !== currentUser?.username ? 'grayscale(30%)' : 'none',
+          }}
+          onClick={() => !username && document.getElementById('avatar-input').click()}
         >
           <Avatar
             src={file ? URL.createObjectURL(file) : profile.avatar}
             sx={{ width: 100, height: 100, mb: 2, border: '3px solid white' }}
           />
-          <input
-            type="file"
-            accept="image/*"
-            id="avatar-input"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
-          <IconButton
-            sx={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.7)' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              document.getElementById('avatar-input').click();
-            }}
-          >
-            <PhotoCamera fontSize="small" />
-          </IconButton>
+          {!username && (
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                id="avatar-input"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+              <IconButton
+                sx={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.7)' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  document.getElementById('avatar-input').click();
+                }}
+              >
+                <PhotoCamera fontSize="small" />
+              </IconButton>
+            </>
+          )}
         </Box>
 
         <Typography variant="h5">{profile.first_name} {profile.last_name}</Typography>
-        {profile.pinned_post && (
-          <Paper sx={{ mt: 2, p: 2, borderLeft: '4px solid #1976d2' }}>
-            <Typography variant="caption" color="text.secondary">
-              Закреплённый пост
-            </Typography>
-            <Typography variant="body1">{profile.pinned_post.content}</Typography>
-          </Paper>
+
+        {/* Подписка и статистика, только если это не текущий профиль */}
+        {username && username !== currentUser?.username && (
+          <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant={isFollowing ? 'outlined' : 'contained'}
+              onClick={handleFollowToggle}
+              disabled={loadingFollow}
+            >
+              {loadingFollow ? 'Обрабатывается...' : isFollowing ? 'Отписаться' : 'Подписаться'}
+            </Button>
+            <Typography>Подписчики: {followersCount}</Typography>
+            <Typography>Подписки: {followingCount}</Typography>
+          </Box>
+        )}
+
+        {/* Статистика для своего профиля */}
+        {!username && (
+          <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
+            <Typography>Подписчики: {followersCount}</Typography>
+            <Typography>Подписки: {followingCount}</Typography>
+          </Box>
         )}
       </Box>
 
+      {/* Вкладки профиля */}
       <Tabs value={tabIndex} onChange={handleTabChange} centered>
         <Tab label="Основное" />
         <Tab label="Активность" />
       </Tabs>
 
+      {/* Основное */}
       <TabPanel value={tabIndex} index={0}>
-        <Box component="form" noValidate sx={{ mt: 2 }}>
-          <TextField fullWidth label="Имя" name="first_name" value={editData.first_name} onChange={handleChange} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Фамилия" name="last_name" value={editData.last_name} onChange={handleChange} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Email" name="email" value={editData.email} onChange={handleChange} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Телефон" name="phone" value={editData.phone} onChange={handleChange} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Город" name="city" value={editData.city} onChange={handleChange} sx={{ mb: 2 }} />
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-            <Button variant="contained" onClick={handleSave} disabled={loading}>
-              {loading ? 'Сохраняю...' : 'Сохранить'}
-            </Button>
-            <Button variant="outlined" onClick={handlePasswordChange}>
-              Сменить пароль
-            </Button>
-            <Button color="error" onClick={() => setOpenConfirm(true)}>
-              Удалить профиль
-            </Button>
+        {username && username !== currentUser?.username ? (
+          // Просмотр чужого профиля
+          <Box sx={{ mt: 2 }}>
+            <Typography><b>Имя:</b> {profile.first_name}</Typography>
+            <Typography><b>Фамилия:</b> {profile.last_name}</Typography>
+            <Typography><b>Email:</b> {profile.email}</Typography>
+            <Typography><b>Телефон:</b> {profile.phone}</Typography>
+            <Typography><b>Город:</b> {profile.city}</Typography>
+            <Typography><b>Биография:</b> {profile.bio}</Typography>
           </Box>
-        </Box>
+        ) : (
+          // Редактирование своего профиля
+          <Box component="form" noValidate sx={{ mt: 2 }}>
+            <TextField fullWidth label="Имя" name="first_name" value={editData.first_name} onChange={handleChange} sx={{ mb: 2 }} />
+            <TextField fullWidth label="Фамилия" name="last_name" value={editData.last_name} onChange={handleChange} sx={{ mb: 2 }} />
+            <TextField fullWidth label="Email" name="email" value={editData.email} onChange={handleChange} sx={{ mb: 2 }} />
+            <TextField fullWidth label="Телефон" name="phone" value={editData.phone} onChange={handleChange} sx={{ mb: 2 }} />
+            <TextField fullWidth label="Город" name="city" value={editData.city} onChange={handleChange} sx={{ mb: 2 }} />
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+              <Button variant="contained" onClick={handleSave} disabled={loading}>
+                {loading ? 'Сохраняю...' : 'Сохранить'}
+              </Button>
+              <Button variant="outlined" onClick={handlePasswordChange}>
+                Сменить пароль
+              </Button>
+              <Button color="error" onClick={() => setOpenConfirm(true)}>
+                Удалить профиль
+              </Button>
+            </Box>
+          </Box>
+        )}
       </TabPanel>
 
+      {/* Активность */}
       <TabPanel value={tabIndex} index={1}>
         <Tabs value={activityTab} onChange={handleActivityTabChange} centered sx={{ mb: 2 }}>
           <Tab label="Публикации" />
@@ -239,8 +391,9 @@ export default function ProfilePage() {
           <Tab label="Понравившиеся" />
         </Tabs>
 
+        {/* Публикации */}
         <TabPanel value={activityTab} index={0}>
-          {profile.posts && profile.posts.length > 0 ? profile.posts.map(post => (
+          {posts.length > 0 ? posts.map(post => (
             <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
               <Typography>{post.content}</Typography>
               <Typography variant="caption" color="text.secondary">
@@ -248,10 +401,19 @@ export default function ProfilePage() {
               </Typography>
             </Paper>
           )) : <Typography>Публикаций нет</Typography>}
+
+          {postsHasMore && (
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Button onClick={loadMorePosts} disabled={postsLoading}>
+                {postsLoading ? 'Загрузка...' : 'Загрузить ещё'}
+              </Button>
+            </Box>
+          )}
         </TabPanel>
 
+        {/* Репосты */}
         <TabPanel value={activityTab} index={1}>
-          {profile.reposts && profile.reposts.length > 0 ? profile.reposts.map(repost => (
+          {reposts.length > 0 ? reposts.map(repost => (
             <Paper key={repost.id} sx={{ p: 2, mb: 2 }}>
               <Typography>
                 Репост от {repost.user?.username || 'неизвестный'} — оригинал: {repost.original_post?.content?.slice(0, 50) || '...'}
@@ -263,8 +425,9 @@ export default function ProfilePage() {
           )) : <Typography>Репостов нет</Typography>}
         </TabPanel>
 
+        {/* Понравившиеся */}
         <TabPanel value={activityTab} index={2}>
-          {profile.liked_posts && profile.liked_posts.length > 0 ? profile.liked_posts.map(post => (
+          {likedPosts.length > 0 ? likedPosts.map(post => (
             <Paper key={post.id} sx={{ p: 2, mb: 2 }}>
               <Typography>{post.content}</Typography>
               <Typography variant="caption" color="text.secondary">
@@ -275,6 +438,7 @@ export default function ProfilePage() {
         </TabPanel>
       </TabPanel>
 
+      {/* Диалог подтверждения удаления */}
       <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
         <DialogTitle>Подтвердите удаление</DialogTitle>
         <DialogContent>
@@ -286,6 +450,7 @@ export default function ProfilePage() {
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar для уведомлений */}
       <Snackbar
         open={snackOpen}
         autoHideDuration={6000}

@@ -1,8 +1,7 @@
-//C:\Users\ASUS Vivobook\PycharmProjects\PythonProject1\vdvuhslovah\frontend\src\pages\HomePage.js
+// frontend/src/pages/HomePage.js
 
-// ✅ frontend/src/pages/HomePage.js
 // Основная страница приложения. Показывает список постов, форму для создания постов,
-// позволяет просматривать и комментировать посты. Подключает вложенные комментарии через CommentsList.
+// позволяет просматривать и комментировать посты. Обновляет локальное состояние после лайка и репоста без полной перезагрузки.
 
 import React, { useEffect, useState, useContext } from 'react';
 import {
@@ -21,7 +20,6 @@ import { styled } from '@mui/material/styles';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import CommentIcon from '@mui/icons-material/Comment';
-import SendIcon from '@mui/icons-material/Send';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { AuthContext } from '../context/AuthContext';
@@ -76,7 +74,6 @@ const HomePage = () => {
   const [popularPosts, setPopularPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newPostText, setNewPostText] = useState('');
-  const [newCommentTextByPostId, setNewCommentTextByPostId] = useState({});
   const [commentsByPostId, setCommentsByPostId] = useState({});
   const [showCommentsFor, setShowCommentsFor] = useState({});
   const [loadingComments, setLoadingComments] = useState({});
@@ -117,6 +114,7 @@ const HomePage = () => {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       setNewPostText('');
+      // Обновляем список постов после добавления
       const response = await api.get('/posts/');
       setPosts(response.data);
     } catch (error) {
@@ -130,13 +128,16 @@ const HomePage = () => {
       return;
     }
     try {
-      await api.post(
+      const response = await api.post(
         `/posts/${postId}/like/`,
         {},
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      const response = await api.get('/posts/');
-      setPosts(response.data);
+      const updatedPost = response.data;
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => (post.id === postId ? updatedPost : post))
+      );
     } catch (error) {
       console.error('Ошибка при лайке:', error);
     }
@@ -148,13 +149,16 @@ const HomePage = () => {
       return;
     }
     try {
-      await api.post(
+      const response = await api.post(
         `/posts/${postId}/repost/`,
         {},
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      const response = await api.get('/posts/');
-      setPosts(response.data);
+      const updatedPost = response.data;
+
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => (post.id === postId ? updatedPost : post))
+      );
     } catch (error) {
       console.error('Ошибка при репосте:', error);
     }
@@ -264,10 +268,7 @@ const HomePage = () => {
               </Box>
             </AuthorInfo>
 
-            <PostContent
-              variant="body1"
-              onClick={() => goToPostPage(post.id)}
-            >
+            <PostContent variant="body1" onClick={() => goToPostPage(post.id)}>
               {post.content}
             </PostContent>
 
@@ -346,7 +347,11 @@ const HomePage = () => {
                 sx={{ cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
                 onClick={() => goToPostPage(post.id)}
               >
-                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5, cursor: 'default' }}>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  sx={{ mb: 0.5, cursor: 'default' }}
+                >
                   <Link
                     component="button"
                     variant="subtitle2"

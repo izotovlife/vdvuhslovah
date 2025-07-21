@@ -10,7 +10,7 @@
 # backend/core/views.py
 # Основные представления API для:
 # - регистрации и подтверждения email
-# - управления профилем
+# - управления профилем (публичный и приватный)
 # - работы с постами, комментариями (включая вложенные), лайками и репостами
 # - уведомлений
 # - смены и сброса пароля
@@ -23,12 +23,12 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from .models import Profile, Post, Repost, Comment, Notification
+from .serializers import PublicProfileSerializer, FullProfileSerializer
 from .serializers import (
     ProfileSerializer, ProfileUpdateSerializer, PostSerializer,
     CommentSerializer, RepostSerializer, UserSerializer, RegisterSerializer,
     SendPasswordResetEmailSerializer, ResetPasswordSerializer, NotificationSerializer
 )
-
 
 class RegisterAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -73,20 +73,21 @@ class ProfileDetailAPIView(mixins.UpdateModelMixin, generics.GenericAPIView):
 
 
 class PublicProfileView(generics.RetrieveAPIView):
-    serializer_class = ProfileSerializer
-    permission_classes = [permissions.AllowAny]
-    lookup_field = 'user__username'
     queryset = Profile.objects.select_related('user')
+    serializer_class = PublicProfileSerializer
+    lookup_field = 'user__username'
 
     def get_object(self):
         username = self.kwargs.get('username')
-        profile = get_object_or_404(Profile, user__username=username)
-        return profile
+        return get_object_or_404(Profile, user__username=username)
 
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx['request'] = self.request
-        return ctx
+
+class PrivateProfileView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = FullProfileSerializer
+
+    def get_object(self):
+        return self.request.user.profile
 
 
 class PostListCreateAPIView(generics.ListCreateAPIView):
@@ -115,7 +116,6 @@ class PostCommentListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         post_id = self.kwargs['pk']
-        # Возвращаем только корневые комментарии (без родителя)
         return Comment.objects.filter(post_id=post_id, parent=None).order_by('created_at')
 
     def get_serializer_context(self):
@@ -134,7 +134,6 @@ class PostCommentListCreateAPIView(generics.ListCreateAPIView):
             except Comment.DoesNotExist:
                 parent_comment = None
         serializer.save(user=self.request.user, post=post, parent=parent_comment)
-
 
 
 class PostRepostAPIView(APIView):

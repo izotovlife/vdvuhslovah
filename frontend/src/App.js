@@ -1,5 +1,18 @@
 // frontend/src/App.js
 
+/*
+  Главный файл приложения React, отвечающий за маршрутизацию и обёртку контекста авторизации.
+
+  В этом файле:
+  - Настроен React Router с приватными и публичными маршрутами.
+  - Используется компонент PrivateRoute для защиты страниц, требующих авторизации.
+  - Определены маршруты для страниц: входа, регистрации, профиля, постов, изменения пароля и других.
+  - Заголовок (Header) отображается на всех страницах, кроме страницы авторизации.
+  - Вся структура приложения обёрнута в AuthProvider, который управляет состоянием авторизации пользователя.
+
+  Таким образом, этот файл связывает все основные страницы и компоненты, обеспечивая навигацию и защиту приватных маршрутов.
+*/
+
 import React, { useContext } from 'react';
 import {
   BrowserRouter as Router,
@@ -21,6 +34,9 @@ import ProfilePage from './pages/ProfilePage';
 import PostPage from './pages/PostPage';
 
 import AuthPage from './components/AuthPage';
+
+// Импортируем TimeAgoExample
+import TimeAgoExample from './components/TimeAgoExample';
 
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
@@ -57,6 +73,9 @@ function AppRoutes() {
 
         <Route path="/user/:username" element={<PrivateRoute><UserPageWrapper /></PrivateRoute>} />
         <Route path="/post/:postId" element={<PrivateRoute><PostPage /></PrivateRoute>} />
+
+        {/* Новый маршрут для TimeAgoExample */}
+        <Route path="/timeago" element={<TimeAgoExample />} />
 
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
